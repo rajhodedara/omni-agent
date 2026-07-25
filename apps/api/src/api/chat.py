@@ -39,8 +39,12 @@ async def event_generator(request: ChatRequest) -> AsyncGenerator[str, None]:
     yield f"data: {json.dumps({'type': 'status', 'data': 'Started execution'})}\n\n"
     
     try:
+        import uuid
+        thread_id = request.conversation_id or str(uuid.uuid4())
+        config = {"configurable": {"thread_id": thread_id}}
+        
         # Stream the graph execution
-        async for output in agent_graph.astream(initial_state):
+        async for output in agent_graph.astream(initial_state, config=config):
             # output is a dict where keys are the node names that just executed
             for node_name, node_state in output.items():
                 event_data = {

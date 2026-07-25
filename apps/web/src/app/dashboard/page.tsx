@@ -147,87 +147,155 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-surface text-text-primary overflow-hidden font-body-md">
-      {/* TopNavBar */}
-      <header className="bg-surface-dim/80 backdrop-blur-xl border-b border-glass flex justify-between items-center h-16 px-8 w-full z-50 fixed top-0">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-            <span style={{ fontSize: '1.4rem' }}>✨</span>
-            <span className="font-display-lg text-2xl font-bold text-gradient tracking-tight">PersonalAI</span>
-          </Link>
-          <div className="flex items-center gap-2 px-3 py-1 bg-surface-glass border border-glass rounded-full">
-            <span className={`w-2 h-2 rounded-full ${status === 'running' ? 'bg-secondary animate-pulse shadow-[0_0_8px_#4cd7f6]' : 'bg-surface-variant'}`}></span>
-            <span className="font-label-md text-xs text-secondary">
-              {status === 'running' ? 'Executing Plan...' : 'Idle'}
-            </span>
-          </div>
-        </div>
-        
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-background text-on-background font-body-md">
+      {/* TopAppBar */}
+      <header className="flex justify-between items-center px-6 h-16 w-full sticky top-0 z-50 bg-surface/30 backdrop-blur-md border-b border-white/10 shadow-[0_0_20px_rgba(208,188,255,0.1)]">
         <div className="flex items-center gap-4">
-          <Link href="/" className="font-body-sm text-xs text-on-surface-variant hover:text-primary transition-colors px-2 py-1">
-            Home
+          <Link href="/" className="font-display-lg text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-tertiary">
+            PersonalAI
           </Link>
-          <button className="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">notifications</button>
-          <button className="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">settings</button>
-          <div className="w-8 h-8 rounded-full bg-gradient flex items-center justify-center text-xs font-bold shadow-[0_0_12px_rgba(128,131,255,0.3)] cursor-pointer">
-            AI
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center glass-card rounded-full px-4 py-1.5 glass-input transition-all">
+            <span className="material-symbols-outlined text-on-surface-variant text-sm mr-2">search</span>
+            <input className="bg-transparent border-none text-on-surface focus:ring-0 text-sm w-48 placeholder-on-surface-variant/50" placeholder="Search..." type="text"/>
           </div>
+          <button className="p-2 rounded-full hover:bg-white/5 transition-colors text-on-surface-variant hover:text-primary scale-95 active:scale-90">
+            <span className="material-symbols-outlined">settings</span>
+          </button>
+          <button className="p-2 rounded-full hover:bg-white/5 transition-colors text-on-surface-variant hover:text-primary scale-95 active:scale-90">
+            <span className="material-symbols-outlined">help</span>
+          </button>
+          <button className="p-2 rounded-full hover:bg-white/5 transition-colors text-on-surface-variant hover:text-primary scale-95 active:scale-90">
+            <span className="material-symbols-outlined">account_circle</span>
+          </button>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex mt-16 overflow-hidden">
-        {/* Left Sidebar: Chat Interface */}
-        <aside className="w-[340px] shrink-0 bg-surface-container border-r border-glass flex flex-col z-40 relative">
-          <div className="p-6 flex flex-col gap-1.5 border-b border-glass bg-surface-container-low/40">
-            <h2 className="font-headline-md text-xl text-primary font-semibold">Omni-Agent Core</h2>
-            <p className="font-label-sm text-[11px] text-on-surface-variant/80 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary inline-block"></span>
-              Autonomous Workflow Mode
-            </p>
-          </div>
-          
-          {/* Chat Log */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 scroll-hide pb-32">
-            <ChatThread messages={messages} quickActions={quickActions} onSelectAction={handleSend} />
-          </div>
-          
-          {/* Chat Input */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-surface-container/90 backdrop-blur-md border-t border-glass">
-            <div className="w-full">
-              <ChatInput onSend={handleSend} disabled={status === 'running'} />
+      <div className="flex flex-1 overflow-hidden relative z-10">
+        {/* SideNavBar */}
+        <nav className="hidden md:flex flex-col h-full py-2 bg-surface-container-low/50 backdrop-blur-xl border-r border-white/10 shadow-xl w-[280px] shrink-0 transition-all duration-300 ease-in-out">
+          <div className="px-6 py-4 flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden border border-primary/30">
+              <span className="material-symbols-outlined text-primary">person</span>
+            </div>
+            <div>
+              <h2 className="font-display-lg text-lg font-semibold text-on-surface">PersonalAI</h2>
+              <p className="text-xs text-on-surface-variant">Autonomous Mode</p>
             </div>
           </div>
-        </aside>
-
-        {/* Right Canvas: Execution Graph */}
-        <section className="flex-1 relative overflow-hidden dot-pattern">
-          {/* Execution Graph Component */}
-          <div className="absolute inset-0 w-full h-full pointer-events-auto">
-            <ExecutionGraph />
+          <div className="flex flex-col gap-2 px-4 flex-1">
+            <button onClick={handleReset} className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 text-primary border-l-4 border-primary font-medium hover:bg-white/5 transition-all">
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>add</span>
+              New Chat
+            </button>
+            <button className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all">
+              <span className="material-symbols-outlined">history</span>
+              History
+            </button>
+            <button className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all">
+              <span className="material-symbols-outlined">smart_toy</span>
+              Agents
+            </button>
+            <button className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all">
+              <span className="material-symbols-outlined">folder</span>
+              Storage
+            </button>
           </div>
+          <div className="px-4 mt-auto">
+            <button className="w-full py-3 mb-4 rounded-lg bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors font-medium text-sm flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined text-sm">star</span>
+              Upgrade to Pro
+            </button>
+            <div className="border-t border-white/10 pt-4 flex flex-col gap-2 pb-4">
+              <button className="flex items-center gap-3 px-4 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all text-sm">
+                <span className="material-symbols-outlined text-sm">settings</span>
+                Settings
+              </button>
+              <button className="flex items-center gap-3 px-4 py-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all text-sm">
+                <span className="material-symbols-outlined text-sm">logout</span>
+                Log Out
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        {/* Main Content Canvas (Two Panel Split) */}
+        <main className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden p-6 gap-6">
           
-          {/* Floating Action Button */}
-          <button 
-            onClick={handleReset}
-            title="Reset conversation & workflow graph"
-            className="fixed bottom-8 right-8 bg-primary text-on-primary px-6 py-3 rounded-full flex items-center gap-2 shadow-[0_10px_30px_rgba(192,193,255,0.3)] hover:scale-105 active:scale-95 transition-all font-label-md text-[13px] group z-50 cursor-pointer"
-          >
-            <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">bolt</span>
-            New Instance
-          </button>
-          
-          {/* Bottom Dashboard Stats */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-8 z-30 pointer-events-none">
-            <div className="glass-panel px-6 py-3 rounded-xl flex items-center gap-4 shadow-lg">
-              <div className="text-on-surface-variant">
-                <p className="font-label-sm text-[10px] uppercase tracking-tighter text-on-surface-variant/70">Status</p>
-                <p className="font-label-md text-secondary">{status === 'running' ? 'Active Workflow' : 'Standby'}</p>
+          {/* Left Panel: Chat Interface */}
+          <section className="flex-1 flex flex-col glass-card rounded-xl overflow-hidden border border-white/10 relative min-w-[300px]">
+            {/* Chat Header */}
+            <div className="px-6 py-4 border-b border-white/10 bg-surface/50 backdrop-blur-md flex justify-between items-center z-10">
+              <div className="flex items-center gap-3">
+                <div className={`w-2 h-2 rounded-full ${status === 'running' ? 'bg-secondary shadow-[0_0_10px_#89ceff] animate-pulse' : 'bg-tertiary shadow-[0_0_10px_#4edea3]'}`}></div>
+                <h2 className="font-headline-md text-xl text-on-surface">Goal Setting</h2>
+              </div>
+              <button className="text-on-surface-variant hover:text-primary transition-colors">
+                <span className="material-symbols-outlined text-xl">more_horiz</span>
+              </button>
+            </div>
+            
+            {/* Chat Messages Area */}
+            <div className="flex-1 overflow-y-auto p-6 scroll-hide pb-2">
+              <ChatThread messages={messages} quickActions={quickActions} onSelectAction={handleSend} />
+            </div>
+
+            {/* Chat Input Area */}
+            <div className="p-4 border-t border-white/10 bg-surface/50 backdrop-blur-md z-10 flex flex-col gap-2">
+              <div className="flex flex-wrap gap-2 px-1">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-[11px] text-on-surface-variant backdrop-blur-sm">
+                  <span className="text-[12px]">🧠</span> Recalled: Prefers dark mode
+                </span>
+              </div>
+              <ChatInput onSend={handleSend} disabled={status === 'running'} />
+              <div className="text-center mt-1">
+                <span className="text-[10px] text-on-surface-variant/50 font-label-caps uppercase tracking-widest">
+                  {status === 'running' ? 'Agent Processing...' : 'Autonomous Agent Active'}
+                </span>
               </div>
             </div>
-          </div>
-        </section>
-      </main>
+          </section>
+
+          {/* Right Panel: Execution Graph */}
+          <section className="flex-1 flex flex-col glass-card rounded-xl border border-white/10 overflow-hidden relative min-w-[300px]">
+            {/* Graph Header */}
+            <div className="px-6 py-4 border-b border-white/10 bg-surface/30 backdrop-blur-md flex justify-between items-center z-20">
+              <h2 className="font-headline-md text-xl text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary">account_tree</span>
+                Execution Graph
+              </h2>
+              <div className="flex gap-2">
+                <button className="px-3 py-1 rounded-full text-xs border border-white/10 bg-white/5 text-on-surface-variant hover:text-on-surface hover:bg-white/10 transition-colors">Map</button>
+                <button className="px-3 py-1 rounded-full text-xs border border-primary/30 bg-primary/10 text-primary transition-colors">Live</button>
+              </div>
+            </div>
+            
+            {/* Interactive Graph Area */}
+            <div className="flex-1 relative overflow-hidden bg-surface-container-lowest/50 p-8 flex flex-col dot-pattern">
+              <div className="absolute inset-0 w-full h-full pointer-events-auto z-10">
+                <ExecutionGraph />
+              </div>
+            </div>
+            
+            {/* Status Footer */}
+            <div className="px-4 py-3 border-t border-white/10 bg-surface/50 backdrop-blur-md z-20 flex justify-between items-center">
+              <div className="flex items-center gap-2 text-xs text-on-surface-variant">
+                <div className={`w-1.5 h-1.5 rounded-full ${status === 'running' ? 'bg-secondary shadow-[0_0_8px_#89ceff] animate-pulse' : 'bg-surface-variant'}`}></div>
+                {status === 'running' ? 'Agent processing sub-tasks' : 'Agent standby'}
+              </div>
+              <div className="flex gap-4 font-mono text-[10px] text-on-surface-variant">
+                <span>Model: Gemini Pro</span>
+                <span className="text-white/20">|</span>
+                <span>Tokens: ~</span>
+                <span className="text-white/20">|</span>
+                <span>Latency: ~</span>
+              </div>
+            </div>
+          </section>
+
+        </main>
+      </div>
     </div>
   );
 }

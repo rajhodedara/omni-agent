@@ -14,7 +14,7 @@ def get_llm_router() -> Router:
         {
             "model_name": "cerebras-llama3-70b",
             "litellm_params": {
-                "model": "cerebras/llama3.3-70b",
+                "model": "cerebras/llama3.1-70b",
                 "api_key": settings.CEREBRAS_API_KEY.strip(),
             },
             "tpm": 30 * 1000,
@@ -40,7 +40,7 @@ def get_llm_router() -> Router:
         {
             "model_name": "groq-llama3-70b",
             "litellm_params": {
-                "model": "groq/llama-3.3-70b",
+                "model": "groq/llama-3.3-70b-versatile",
                 "api_key": settings.GROQ_API_KEY.strip(),
             },
             "rpm": 30,
@@ -65,7 +65,7 @@ def get_llm_router() -> Router:
     _router = Router(
         model_list=model_list,
         fallbacks=[
-            {"cerebras-llama3-70b": ["gemini-flash", "github-gpt4o-mini", "groq-llama3-70b", "openrouter-free", "ollama-local"]}
+            {"groq-llama3-70b": ["cerebras-llama3-70b", "gemini-flash", "github-gpt4o-mini", "openrouter-free", "ollama-local"]}
         ],
         num_retries=0, # Fail fast instead of loading forever
         timeout=15.0 # Max 15 seconds per provider
@@ -79,7 +79,7 @@ async def chat_completion(messages: list, tools: list = None, **kwargs):
     # Simple validation wrapper: if response is completely unparseable and looks like it should be JSON, we could force an exception.
     # But for now, just relying on the correct fallback order and singleton router.
     return await router.acompletion(
-        model="cerebras-llama3-70b",
+        model="groq-llama3-70b",
         messages=messages,
         tools=tools,
         **kwargs

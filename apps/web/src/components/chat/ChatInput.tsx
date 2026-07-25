@@ -36,27 +36,33 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
   };
 
   return (
-    <div className="relative flex items-center bg-surface-glass border border-glass rounded-3xl px-4 py-2 focus-within:ring-1 focus-within:ring-primary/50 transition-all w-full">
+    <div className="relative flex items-center glass-card rounded-xl glass-input p-2 transition-all duration-300 w-full">
+      <button className="p-2 text-on-surface-variant hover:text-primary transition-colors">
+        <span className="material-symbols-outlined">add_circle</span>
+      </button>
       <textarea
         ref={textareaRef}
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Ask anything..."
+        placeholder="Command PersonalAI..."
         disabled={disabled}
         rows={1}
-        className="bg-transparent border-none focus:ring-0 text-body-sm font-body-sm flex-1 text-on-surface placeholder:text-on-surface-variant/50 resize-none outline-none min-h-[24px] max-h-[120px] py-2 scroll-hide"
+        className="flex-1 bg-transparent border-none text-on-surface focus:ring-0 placeholder-on-surface-variant/50 min-h-[44px] resize-none outline-none py-3 scroll-hide"
       />
+      <button className="p-2 text-primary hover:text-primary-container transition-colors mr-1">
+        <span className="material-symbols-outlined">mic</span>
+      </button>
       <button
         onClick={handleSend}
         disabled={!input.trim() || disabled}
-        className={`rounded-full p-2 flex items-center justify-center transition-all active:scale-95 ml-2 ${
+        className={`rounded-lg p-2 flex items-center justify-center transition-colors shadow-[0_0_15px_rgba(208,188,255,0.4)] ${
           input.trim() && !disabled
-            ? 'bg-primary hover:bg-primary-container text-on-primary shadow-[0_0_15px_rgba(192,193,255,0.3)]'
-            : 'bg-surface-variant text-on-surface-variant opacity-50 cursor-not-allowed'
+            ? 'bg-primary hover:bg-primary-container text-on-primary'
+            : 'bg-surface-variant text-on-surface-variant opacity-50 cursor-not-allowed shadow-none'
         }`}
       >
-        <span className="material-symbols-outlined text-[18px]">send</span>
+        <span className="material-symbols-outlined">send</span>
       </button>
     </div>
   );

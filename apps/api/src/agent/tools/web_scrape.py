@@ -15,6 +15,10 @@ class WebScrapeTool(BaseTool):
         import socket
         import ipaddress
 
+        url = url.strip()
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
+
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https"):
             raise ValueError(f"Invalid URL scheme: {parsed.scheme}")

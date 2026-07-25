@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 from duckduckgo_search import DDGS
+import os
+import httpx
 from src.agent.tools.base import BaseTool
 
 class YelpSearchInput(BaseModel):
@@ -12,16 +14,45 @@ class YelpSearchTool(BaseTool):
     input_schema = YelpSearchInput
     
     async def execute(self, search_term: str, location: str) -> str:
-        # Instead of failing without an API key, we use DuckDuckGo to search Yelp!
         query = f"site:yelp.com {search_term} {location}"
         
-        with DDGS() as ddgs:
-            results = ddgs.text(query, max_results=5)
-            
+        api_key = os.environ.get("TAVILY_API_KEY")
+        if api_key:
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        "https://api.tavily.com/search",
+                        json={"api_key": api_key, "query": query, "max_results": 5},
+                        timeout=15.0
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                    results = data.get("results", [])
+                    if results:
+                        formatted_results = []
+                        for r in results:
+                            title = r.get("title", "Unknown").replace(" - Yelp", "")
+                            url = r.get("url", "")
+                            snippet = r.get("content", "No description available.")
+                            formatted_results.append(f"- **{title}**\n  URL: {url}\n  Snippet: \"{snippet}\"")
+                        return "\n\n".join(formatted_results)
+            except Exception:
+                pass # fallback to ddgs
+
+        import asyncio
+        
+        def run_ddgs():
+            with DDGS() as ddgs:
+                return ddgs.text(query, max_results=5, backend="html")
+                
+        try:
+            results = await asyncio.to_thread(run_ddgs)
             if not results:
                 return f"No results found for '{search_term}' in '{location}' on Yelp."
+        except Exception as e:
+            return f"Yelp search failed: {str(e)}"
 
-            formatted_results = []
+        formatted_results = []
             for r in results:
                 title = r.get("title", "Unknown")
                 # Yelp titles usually look like "San Francisco - Sushi - Best Match - Yelp"
