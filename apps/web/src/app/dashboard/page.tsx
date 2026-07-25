@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import ChatInput from '../../components/chat/ChatInput';
 import ChatThread from '../../components/chat/ChatThread';
@@ -11,6 +11,15 @@ import ExecutionGraph from '../../components/graph/ExecutionGraph';
 export default function DashboardPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const { status, setStatus, setExecutionSteps } = useExecutionStore();
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const handleSend = async (content: string) => {
     // Add user message
@@ -35,11 +44,17 @@ export default function DashboardPage() {
     setExecutionSteps([]); // Reset graph for new run
     
     try {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/chat` : 'http://127.0.0.1:8000/api/chat';
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: content })
+        body: JSON.stringify({ message: content }),
+        signal: abortControllerRef.current.signal
       });
 
       if (!response.body) throw new Error("No response body");
@@ -68,7 +83,11 @@ export default function DashboardPage() {
               if (event.type === 'node_update' && event.data) {
                 // If it's a plan update
                 if (event.data.plan) {
-                  setExecutionSteps(event.data.plan);
+                  const currentSteps = useExecutionStore.getState().executionSteps;
+                  // Only update if the incoming plan is at least as long as current plan to prevent backwards state corruption
+                  if (event.data.plan.length >= currentSteps.length) {
+                    setExecutionSteps(event.data.plan);
+                  }
                 }
                 
                 // If it's the final summary
@@ -96,7 +115,11 @@ export default function DashboardPage() {
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('Fetch aborted');
+        return;
+      }
       console.error('Chat error:', error);
       setStatus('idle');
       setMessages(prev => {

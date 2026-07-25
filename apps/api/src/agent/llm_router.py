@@ -1,7 +1,13 @@
 from litellm import Router
 from src.config import get_settings
 
+_router = None
+
 def get_llm_router() -> Router:
+    global _router
+    if _router is not None:
+        return _router
+        
     settings = get_settings()
     
     model_list = [
@@ -56,20 +62,24 @@ def get_llm_router() -> Router:
         }
     ]
     
-    router = Router(
+    _router = Router(
         model_list=model_list,
         fallbacks=[
-            {"gemini-flash": ["openrouter-free", "cerebras-llama3-70b", "github-gpt4o-mini", "groq-llama3-70b", "ollama-local"]}
+            {"cerebras-llama3-70b": ["gemini-flash", "github-gpt4o-mini", "groq-llama3-70b", "openrouter-free", "ollama-local"]}
         ],
         num_retries=0, # Fail fast instead of loading forever
         timeout=15.0 # Max 15 seconds per provider
     )
-    return router
+    return _router
 
 async def chat_completion(messages: list, tools: list = None, **kwargs):
+    import json
     router = get_llm_router()
+    
+    # Simple validation wrapper: if response is completely unparseable and looks like it should be JSON, we could force an exception.
+    # But for now, just relying on the correct fallback order and singleton router.
     return await router.acompletion(
-        model="gemini-flash",
+        model="cerebras-llama3-70b",
         messages=messages,
         tools=tools,
         **kwargs

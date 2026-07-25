@@ -51,7 +51,7 @@ class AgentExecutionWorkflow:
             f"Starting agent execution workflow: {execution_id}"
         )
 
-        # Step 1: Run the agent graph
+        # Step 1: Run the initial agent graph execution
         result = await workflow.execute_activity(
             run_agent_graph,
             args=[execution_id, user_id, prompt],
@@ -63,6 +63,31 @@ class AgentExecutionWorkflow:
                 non_retryable_error_types=["CancellationError"],
             ),
         )
+
+        # Step 2: Handle human-in-the-loop interruptions
+        while result.get("status") == "waiting_approval" and not self._is_cancelled:
+            # Wait for human signal (approve/reject/cancel)
+            await workflow.wait_condition(
+                lambda: self._approval_result is not None or self._is_cancelled
+            )
+
+            if self._is_cancelled:
+                break
+
+            approval = self._approval_result
+            self._approval_result = None
+
+            # Resume the graph with the human's decision
+            result = await workflow.execute_activity(
+                resume_agent_graph,
+                args=[execution_id, approval],
+                start_to_close_timeout=timedelta(minutes=10),
+                retry_policy=RetryPolicy(
+                    initial_interval=timedelta(seconds=1),
+                    maximum_interval=timedelta(seconds=30),
+                    maximum_attempts=3,
+                ),
+            )
 
         return result
 
@@ -134,7 +159,8 @@ async def run_agent_graph(
     }
 
     try:
-        final_state = await agent_graph.ainvoke(initial_state)
+        config = {"configurable": {"thread_id": execution_id}}
+        final_state = await agent_graph.ainvoke(initial_state, config)
 
         return {
             "execution_id": execution_id,
@@ -148,6 +174,49 @@ async def run_agent_graph(
 
     except Exception as e:
         logger.error(f"Agent graph execution failed: {e}")
+        return {
+            "execution_id": execution_id,
+            "status": "failed",
+            "error": str(e),
+        }
+
+@activity.defn
+async def resume_agent_graph(
+    execution_id: str,
+    approval_decision: str,
+) -> dict[str, Any]:
+    """
+    Resume the agent graph after a human-in-the-loop interruption.
+    """
+    from src.agent.graph import agent_graph
+
+    logger.info(f"Activity: resume_agent_graph — execution_id={execution_id}, decision={approval_decision}")
+
+    try:
+        config = {"configurable": {"thread_id": execution_id}}
+        
+        # Update state with approval decision
+        # We're updating the state at the interrupt point
+        await agent_graph.aupdate_state(
+            config,
+            {"approval_granted": approval_decision == "approve", "status": "evaluating"}
+        )
+
+        # Resume execution
+        final_state = await agent_graph.ainvoke(None, config)
+
+        return {
+            "execution_id": execution_id,
+            "status": final_state.get("status", "completed"),
+            "summary": final_state.get("final_summary"),
+            "steps_executed": len(final_state.get("step_results", [])),
+            "total_tokens": final_state.get("total_tokens", 0),
+            "plan": final_state.get("plan", []),
+            "step_results": final_state.get("step_results", []),
+        }
+
+    except Exception as e:
+        logger.error(f"Agent graph execution failed during resume: {e}", exc_info=True)
         return {
             "execution_id": execution_id,
             "status": "failed",

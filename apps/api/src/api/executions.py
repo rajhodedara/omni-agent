@@ -8,12 +8,13 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from src.services.execution_service import get_execution_service
 from src.services.streaming_service import get_streaming_service
+from src.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -50,7 +51,7 @@ class SignalRequest(BaseModel):
 
 
 @router.post("/", response_model=CreateExecutionResponse, status_code=201)
-async def create_execution(request: CreateExecutionRequest):
+async def create_execution(request: CreateExecutionRequest, current_user: dict = Depends(get_current_user)):
     """
     Create and start a new agent execution.
 
@@ -60,8 +61,7 @@ async def create_execution(request: CreateExecutionRequest):
     """
     service = get_execution_service()
 
-    # TODO: Extract user_id from JWT auth token
-    user_id = str(uuid.uuid4())  # Placeholder until auth is wired
+    user_id = current_user.get("id") or str(uuid.uuid4())
 
     result = await service.create_execution(
         user_id=user_id,
@@ -73,22 +73,23 @@ async def create_execution(request: CreateExecutionRequest):
 
 
 @router.get("/")
-async def list_executions():
+async def list_executions(current_user: dict = Depends(get_current_user)):
     """List all executions for the current user."""
     # TODO: Query database for user's executions
     return {"executions": [], "total": 0}
 
 
 @router.get("/{execution_id}")
-async def get_execution(execution_id: str):
+async def get_execution(execution_id: str, current_user: dict = Depends(get_current_user)):
     """Get details of a specific execution."""
+    # TODO: Verify that execution_id belongs to current_user["id"] in DB
     service = get_execution_service()
     status = await service.get_execution_status(execution_id)
     return status
 
 
 @router.get("/{execution_id}/stream")
-async def stream_execution(execution_id: str):
+async def stream_execution(execution_id: str, current_user: dict = Depends(get_current_user)):
     """
     Stream real-time execution events via Server-Sent Events (SSE).
 
@@ -104,6 +105,7 @@ async def stream_execution(execution_id: str):
     - execution_completed: All steps finished
     - execution_failed: Execution encountered a fatal error
     """
+    # TODO: Verify that execution_id belongs to current_user["id"] in DB
     streaming = get_streaming_service()
 
     return StreamingResponse(
@@ -118,7 +120,7 @@ async def stream_execution(execution_id: str):
 
 
 @router.post("/{execution_id}/signal")
-async def send_signal(execution_id: str, request: SignalRequest):
+async def send_signal(execution_id: str, request: SignalRequest, current_user: dict = Depends(get_current_user)):
     """
     Send a control signal to a running execution.
 
@@ -127,6 +129,7 @@ async def send_signal(execution_id: str, request: SignalRequest):
     - reject: Reject a pending action
     - cancel: Cancel the entire execution
     """
+    # TODO: Verify that execution_id belongs to current_user["id"] in DB
     service = get_execution_service()
 
     try:
@@ -143,8 +146,9 @@ async def send_signal(execution_id: str, request: SignalRequest):
 
 
 @router.delete("/{execution_id}")
-async def cancel_execution(execution_id: str):
+async def cancel_execution(execution_id: str, current_user: dict = Depends(get_current_user)):
     """Cancel a running execution."""
+    # TODO: Verify that execution_id belongs to current_user["id"] in DB
     service = get_execution_service()
 
     result = await service.signal_execution(

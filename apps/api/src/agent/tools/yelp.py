@@ -15,28 +15,24 @@ class YelpSearchTool(BaseTool):
         # Instead of failing without an API key, we use DuckDuckGo to search Yelp!
         query = f"site:yelp.com {search_term} {location}"
         
-        try:
-            with DDGS() as ddgs:
-                results = ddgs.text(query, max_results=5)
+        with DDGS() as ddgs:
+            results = ddgs.text(query, max_results=5)
+            
+            if not results:
+                return f"No results found for '{search_term}' in '{location}' on Yelp."
+
+            formatted_results = []
+            for r in results:
+                title = r.get("title", "Unknown")
+                # Yelp titles usually look like "San Francisco - Sushi - Best Match - Yelp"
+                clean_title = title.replace(" - Yelp", "")
+                url = r.get("href", "")
+                snippet = r.get("body", "No description available.")
                 
-                if not results:
-                    return f"No results found for '{search_term}' in '{location}' on Yelp."
+                formatted_results.append(
+                    f"- **{clean_title}**\n"
+                    f"  URL: {url}\n"
+                    f"  Snippet: \"{snippet}\""
+                )
 
-                formatted_results = []
-                for r in results:
-                    title = r.get("title", "Unknown")
-                    # Yelp titles usually look like "San Francisco - Sushi - Best Match - Yelp"
-                    clean_title = title.replace(" - Yelp", "")
-                    url = r.get("href", "")
-                    snippet = r.get("body", "No description available.")
-                    
-                    formatted_results.append(
-                        f"- **{clean_title}**\n"
-                        f"  URL: {url}\n"
-                        f"  Snippet: \"{snippet}\""
-                    )
-
-                return "\n\n".join(formatted_results)
-
-        except Exception as e:
-            return f"An error occurred while searching Yelp via DuckDuckGo: {str(e)}"
+            return "\n\n".join(formatted_results)

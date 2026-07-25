@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey, Enum, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 from src.models.database import Base
@@ -35,7 +35,7 @@ class Execution(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    conversation_id = Column(UUID(as_uuid=True), ForeignKey("conversations.id"), nullable=False)
+    conversation_id = Column(UUID(as_uuid=True), ForeignKey("conversations.id"), nullable=True)
     original_prompt = Column(String, nullable=False)
     status = Column(Enum(ExecutionStatus), default=ExecutionStatus.pending)
     plan = Column(JSONB, nullable=True)
@@ -47,6 +47,11 @@ class Execution(Base):
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_executions_user_id", "user_id"),
+        Index("ix_executions_conversation_id", "conversation_id"),
+    )
 
 class ExecutionStep(Base):
     __tablename__ = "execution_steps"
@@ -66,3 +71,7 @@ class ExecutionStep(Base):
     latency_ms = Column(Integer, default=0)
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("ix_execution_steps_execution_id", "execution_id"),
+    )

@@ -17,6 +17,7 @@ import logging
 from typing import Any
 
 from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.memory import MemorySaver
 
 from src.agent.state import AgentState, PlanStep, StepResult
 from src.agent.prompts import (
@@ -163,6 +164,65 @@ async def plan_task(state: AgentState) -> dict[str, Any]:
     }
 
 
+async def _llm_construct_tool_args(
+    tool: Any,
+    step_description: str,
+    previous_results: list[dict],
+    original_prompt: str,
+) -> dict:
+    """
+    Use the executor LLM to intelligently construct tool arguments
+    from the step description and prior context when the planner's
+    tool_input is missing or invalid.
+    """
+    schema_info = json.dumps(
+        tool.input_schema.model_json_schema(), indent=2
+    )
+
+    context_summary = ""
+    if previous_results:
+        context_parts = []
+        for r in previous_results:
+            output_preview = str(r.get("tool_output", ""))[:300]
+            context_parts.append(
+                f"  Step {r['step_number']} ({r['tool_name']}): {output_preview}"
+            )
+        context_summary = "Results from previous steps:\n" + "\n".join(context_parts)
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a tool argument constructor. Given a step description, "
+                "a tool's input schema, and context from previous steps, you must "
+                "produce ONLY a valid JSON object matching the schema. "
+                "Do NOT include any markdown formatting, code blocks, or explanation. "
+                "Return ONLY the raw JSON object."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                f"Original user request: {original_prompt}\n\n"
+                f"Current step: {step_description}\n\n"
+                f"Tool: {tool.name} — {tool.description}\n\n"
+                f"Required input schema:\n{schema_info}\n\n"
+                f"{context_summary}\n\n"
+                "Produce the JSON arguments for this tool call."
+            ),
+        },
+    ]
+
+    response = await chat_completion(messages=messages)
+    content = response.choices[0].message.content.strip()
+
+    # Strip markdown code fences if present
+    if content.startswith("```"):
+        content = content.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+
+    return json.loads(content)
+
+
 async def execute_step(state: AgentState) -> dict[str, Any]:
     """Execute the current step from the plan using the appropriate tool."""
     idx = state.get("current_step_index", 0)
@@ -243,39 +303,48 @@ async def execute_step(state: AgentState) -> dict[str, Any]:
         return {"step_results": [result], "plan": plan}
 
     try:
+        from pydantic import ValidationError
+
         raw_input = current_step.get("tool_input", {}) or {}
         if isinstance(raw_input, str):
             try:
                 tool_input = json.loads(raw_input)
-            except:
+            except (json.JSONDecodeError, ValueError):
                 tool_input = {}
         else:
             tool_input = dict(raw_input)
 
-        # Inject context from previous steps if the tool input references it
-        if state.get("step_results"):
-            tool_input["_context"] = [
-                {
-                    "step": r["step_number"],
-                    "tool": r["tool_name"],
-                    "output": r["tool_output"],
-                }
-                for r in state["step_results"]
-            ]
-
         # Remove internal context key before passing to tool
         clean_input = {k: v for k, v in tool_input.items() if not k.startswith("_")}
-        
-        # Validate against tool's Pydantic schema to prevent TypeError from unexpected kwargs
-        from pydantic import ValidationError
+
+        # Try validating the planner-provided input first
+        needs_llm_args = False
         try:
             validated_model = tool.input_schema.model_validate(clean_input)
             validated_input = validated_model.model_dump()
-        except ValidationError as val_err:
-            # If standard validation fails (e.g. extra parameters), try filtering to only expected fields
+        except ValidationError:
+            # Planner gave bad/empty input — try filtering to expected fields
             expected_fields = set(tool.input_schema.model_fields.keys())
             filtered_input = {k: v for k, v in clean_input.items() if k in expected_fields}
-            validated_model = tool.input_schema.model_validate(filtered_input)
+            try:
+                validated_model = tool.input_schema.model_validate(filtered_input)
+                validated_input = validated_model.model_dump()
+            except ValidationError:
+                # Still failing — need LLM to construct arguments
+                needs_llm_args = True
+
+        if needs_llm_args:
+            logger.info(
+                f"Planner tool_input invalid for '{tool_name}', "
+                f"using LLM to construct arguments"
+            )
+            llm_args = await _llm_construct_tool_args(
+                tool=tool,
+                step_description=current_step["description"],
+                previous_results=state.get("step_results", []),
+                original_prompt=state.get("original_prompt", ""),
+            )
+            validated_model = tool.input_schema.model_validate(llm_args)
             validated_input = validated_model.model_dump()
 
         tool_output = await tool.execute(**validated_input)
@@ -311,13 +380,17 @@ async def execute_step(state: AgentState) -> dict[str, Any]:
         )
         plan[idx]["status"] = "failed"
 
-    return {
+    return_dict = {
         "step_results": [result],
         "plan": plan,
         "current_step_index": idx + 1,
-        "retry_count": 0,
         "approval_granted": False,
     }
+    
+    if result["status"] == "completed":
+        return_dict["retry_count"] = 0
+        
+    return return_dict
 
 
 async def evaluate_progress(state: AgentState) -> dict[str, Any]:
@@ -571,7 +644,11 @@ def build_agent_graph() -> StateGraph:
     # Save memory is the final node
     graph.add_edge("save_memory", END)
 
-    return graph.compile()
+    memory = MemorySaver()
+    return graph.compile(
+        checkpointer=memory,
+        interrupt_before=["wait_for_human"]
+    )
 
 
 # Module-level compiled graph (singleton)

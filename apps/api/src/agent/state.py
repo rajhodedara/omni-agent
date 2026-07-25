@@ -10,9 +10,9 @@ from __future__ import annotations
 from typing import TypedDict, Annotated, Literal, Any
 
 
-def _merge_lists(a: list, b: list) -> list:
+def _merge_lists(a: list | None, b: list | None) -> list:
     """Reducer that merges two lists by appending new items."""
-    return a + b
+    return (a or []) + (b or [])
 
 
 class PlanStep(TypedDict, total=False):
