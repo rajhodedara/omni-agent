@@ -17,3 +17,4 @@ venv/
 *.sqlite
 .DS_Store
 Thumbs.db
+token.json

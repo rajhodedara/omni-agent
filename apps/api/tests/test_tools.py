@@ -4,7 +4,7 @@ from src.agent.tools.human_input import HumanInputTool
 from src.agent.tools.maps import MapsTool
 from src.agent.tools.weather import WeatherTool
 from src.agent.tools.web_search import WebSearchTool
-from src.agent.tools.yelp import YelpSearchTool
+from src.agent.tools.local_search import LocalBusinessSearchTool
 from src.agent.tools.web_scrape import WebScrapeTool
 from src.agent.tools.news import NewsTool
 import httpx
@@ -15,7 +15,7 @@ async def test_tool_registry():
     tools = get_all_tools()
     assert len(tools) >= 7
     names = {t.name for t in tools}
-    assert {"web_search", "weather", "news", "maps_geocode", "human_input", "yelp_search", "web_scrape"}.issubset(names)
+    assert {"web_search", "weather", "news", "maps_geocode", "human_input", "local_business_search", "web_scrape"}.issubset(names)
 
     openai_format = get_tools_as_openai_format()
     assert len(openai_format) >= 7
@@ -61,7 +61,7 @@ async def test_maps_tool_not_found():
 async def test_weather_tool():
     tool = WeatherTool()
     geo_response = MagicMock()
-    geo_response.json.return_value = {"results": [{"latitude": 35.68, "longitude": 139.76}]}
+    geo_response.json.return_value = [{"lat": "35.68", "lon": "139.76"}]
     weather_response = MagicMock()
     weather_response.json.return_value = {"current_weather": {"temperature": 22.5, "windspeed": 10.0}}
 
@@ -77,7 +77,12 @@ async def test_web_search_tool():
     mock_ddgs_instance.text.return_value = [
         {"title": "Test Result", "href": "https://example.com", "body": "Snippet text"}
     ]
-    with patch("src.agent.tools.web_search.DDGS") as mock_ddgs:
+    
+    mock_settings = MagicMock()
+    mock_settings.TAVILY_API_KEY = None
+    
+    with patch("src.agent.tools.web_search.get_settings", return_value=mock_settings), \
+         patch("src.agent.tools.web_search.DDGS") as mock_ddgs:
         mock_ddgs.return_value.__enter__.return_value = mock_ddgs_instance
         res = await tool.execute(query="test query", max_results=1)
         assert len(res) == 1
@@ -86,17 +91,20 @@ async def test_web_search_tool():
         assert res[0]["snippet"] == "Snippet text"
 
 @pytest.mark.asyncio
-async def test_yelp_search_tool():
-    tool = YelpSearchTool()
-    mock_ddgs_instance = MagicMock()
-    mock_ddgs_instance.text.return_value = [
-        {"title": "Best Sushi - Yelp", "href": "https://yelp.com/sushi", "body": "Great sushi rolls."}
+async def test_local_business_search_tool():
+    tool = LocalBusinessSearchTool()
+    mock_maps_results = [
+        {
+            "title": "Sakura Sushi",
+            "body": "123 Main St, San Francisco, CA | Phone: +1-415-555-1234 | Rating: 4.5",
+            "href": "https://sakurasushi.example.com",
+        }
     ]
-    with patch("src.agent.tools.yelp.DDGS") as mock_ddgs:
-        mock_ddgs.return_value.__enter__.return_value = mock_ddgs_instance
+    with patch.object(tool, "_ddgs_text_search", return_value=mock_maps_results):
         res = await tool.execute(search_term="sushi", location="San Francisco")
-        assert "Best Sushi" in res
-        assert "https://yelp.com/sushi" in res
+        assert "Sakura Sushi" in res
+        assert "123 Main St" in res
+        assert "+1-415-555-1234" in res
 
 @pytest.mark.asyncio
 async def test_news_tool():

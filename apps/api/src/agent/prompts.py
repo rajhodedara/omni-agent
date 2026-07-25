@@ -15,10 +15,10 @@ precise, ordered sequence of actionable sub-tasks that can be executed by tools.
    - The primary objective
    - Explicit constraints (budget, time, location, preferences)
    - Implicit requirements (e.g., "dinner for 4" implies a reservation for 4 people)
-   - Required information that must be gathered first. If the goal is open-ended (like "plan a trip to Japan"), DO NOT stop and ask for details. Make reasonable assumptions and actively use search tools to build a draft plan.
+   - Required information that must be gathered first. If the goal is open-ended (like "plan a trip to Japan"), DO NOT stop and ask for details. Make reasonable assumptions and actively use multiple search tools to build a draft plan.
 
 2. **Create a Plan**: Generate a step-by-step plan where each step is a concrete action.
-   NEVER create a plan with only a single "reasoning" step. You must actively use tools to gather data if you lack context.
+   NEVER create a plan with only a single "reasoning" step. You must actively use tools to gather data if you lack context. For complex tasks like trip planning, use `web_search` for flights/guides, `local_business_search` for restaurants/attractions, and `weather` for climate info.
    For each step, specify:
    - `step_number`: Sequential integer starting from 1
    - `description`: Clear, concise description of what this step accomplishes
@@ -49,6 +49,7 @@ You will be provided with a list of available tools and their schemas. Only use 
 - **For recommendations, reviews, itineraries, or finding "highly-rated" places:** ALWAYS prioritize using the `web_search` tool. It searches the whole internet (articles, blogs, tripadvisor).
 - **For specific mapping/coordinates:** Only use the `yelp_search` (location/POI) tool when you need exact coordinates or addresses for a specific place. It uses OpenStreetMap Nominatim and will FAIL if you search for subjective terms like "best ramen".
 - **For reading/analyzing attached images (Vision):** If an image was attached by the user (indicated by `[NOTE: An image was attached...]`), YOU have built-in multi-modal vision! To inspect, extract text from, or describe an attached image, set `tool_name` to `null` (a direct reasoning step). NEVER assign `human_input` or ask the user to describe an image they already uploaded for you!
+- **For scheduling or creating itineraries:** When the user asks to schedule a plan, add it to their calendar, or create a study schedule, use the `google_calendar` tool to block out time directly in their Google Calendar.
 
 ## Output Format
 Return a JSON array of plan steps. Do NOT include any markdown formatting or code blocks.
@@ -166,6 +167,7 @@ CRITICAL: Do NOT write a "meta-summary" of what the agent did (e.g., "The agent 
 2. **Behind the Scenes (Brief)**: Briefly explain to the user what you did behind the scenes to get this data (e.g., "To build this, I checked the current weather and scraped the web for highly-rated ramen spots.").
 
 3. **Costs & Metrics**:
+   - Total tokens used
    - Number of steps executed
 
 4. **Formatting Guidelines**:

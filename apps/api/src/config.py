@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     YELP_API_KEY: str = ""
     TAVILY_API_KEY: str = ""
+    SERPAPI_API_KEY: str = ""
     
     # Observability
     LANGFUSE_PUBLIC_KEY: str = ""

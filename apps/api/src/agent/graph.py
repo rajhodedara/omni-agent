@@ -153,6 +153,10 @@ async def plan_task(state: AgentState) -> dict[str, Any]:
         ]
         context_parts.append(f"Previously completed steps:\n" + "\n".join(completed))
 
+    from datetime import datetime
+    current_date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    system_prompt_with_date = f"{PLANNER_SYSTEM_PROMPT}\n\n**CRITICAL CONTEXT**: The current real-world date and time is {current_date_str}. Use this for any relative time calculations (e.g., 'tomorrow')."
+
     context_text = f"{chr(10).join(context_parts)}\n\nAvailable tools:\n{tool_descriptions}\n\nGenerate the execution plan as a JSON array of steps."
     
     # Retrieve user input; if it contains an image, pass a text placeholder to the planner
@@ -166,7 +170,7 @@ async def plan_task(state: AgentState) -> dict[str, Any]:
         final_content = f"User request: {user_content}\n\n{context_text}"
 
     messages = [
-        {"role": "system", "content": PLANNER_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt_with_date},
         {"role": "user", "content": final_content},
     ]
 
@@ -466,11 +470,11 @@ async def execute_step(state: AgentState) -> dict[str, Any]:
         "step_results": [result],
         "plan": plan,
         "current_step_index": idx + 1,
-        "approval_granted": False,
     }
     
     if result["status"] == "completed":
         return_dict["retry_count"] = 0
+        return_dict["approval_granted"] = False
         
     return return_dict
 
@@ -521,8 +525,11 @@ async def replan(state: AgentState) -> dict[str, Any]:
     """Modify the plan when a step fails or produces unexpected results."""
     logger.info("Node: replan — Adjusting execution plan")
 
+    current_date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    system_prompt_with_date = f"{REPLANNER_SYSTEM_PROMPT}\n\n**CRITICAL CONTEXT**: The current real-world date and time is {current_date_str}. Use this for any relative time calculations."
+    
     messages = [
-        {"role": "system", "content": REPLANNER_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt_with_date},
         {
             "role": "user",
             "content": (
