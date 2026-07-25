@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import ChatInput from '../../components/chat/ChatInput';
 import ChatThread from '../../components/chat/ChatThread';
@@ -15,6 +15,79 @@ export default function DashboardPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const { status, setStatus, setExecutionSteps, threadId, setThreadId } = useExecutionStore();
   const abortControllerRef = useRef<AbortController | null>(null);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Resizable panel state
+  const [leftPanelWidth, setLeftPanelWidth] = useState(50); // percentage
+  const [isDragging, setIsDragging] = useState(false);
+  const [isLargeScreen, setIsLargeScreen] = useState(false);
+  const mainRef = useRef<HTMLElement | null>(null);
+
+  // Detect large screen for resizable layout
+  useEffect(() => {
+    const checkScreen = () => setIsLargeScreen(window.innerWidth >= 1024);
+    checkScreen();
+    window.addEventListener('resize', checkScreen);
+    return () => window.removeEventListener('resize', checkScreen);
+  }, []);
+
+  const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!mainRef.current) {
+        // Try to find the main element
+        const el = document.querySelector('main');
+        if (el) mainRef.current = el;
+        else return;
+      }
+      const rect = mainRef.current.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      const totalWidth = rect.width;
+      let newPercent = (offsetX / totalWidth) * 100;
+      // Clamp between 25% and 75%
+      newPercent = Math.max(25, Math.min(75, newPercent));
+      setLeftPanelWidth(newPercent);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    // Prevent text selection while dragging
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    };
+  }, [isDragging]);
+
+  // Auto-scroll chat container when new messages arrive
+  useEffect(() => {
+    // Use rAF + small delay to ensure content has rendered before scrolling
+    const frame = requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (chatScrollRef.current) {
+          chatScrollRef.current.scrollTo({
+            top: chatScrollRef.current.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
+      }, 50);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [messages]);
 
   // Shared helper to process SSE stream from either /chat or /chat/respond
   const processSSEStream = async (response: Response) => {
@@ -199,7 +272,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden bg-background text-on-background font-body-md">
+    <div className="h-screen flex flex-col relative overflow-hidden bg-background text-on-background font-body-md">
       {/* TopAppBar */}
       <header className="flex justify-between items-center px-6 h-16 w-full sticky top-0 z-50 bg-surface/30 backdrop-blur-md border-b border-white/10 shadow-[0_0_20px_rgba(208,188,255,0.1)]">
         <div className="flex items-center gap-4">
@@ -286,11 +359,17 @@ export default function DashboardPage() {
           </div>
         </nav>
 
-        {/* Main Content Canvas (Two Panel Split) */}
-        <main className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden p-6 gap-6">
+        {/* Main Content Canvas (Resizable Two Panel Split) */}
+        <main className="flex-1 flex flex-col lg:flex-row h-full min-h-0 overflow-hidden p-6 gap-0 relative">
           
           {/* Left Panel: Chat Interface */}
-          <section className="flex-1 flex flex-col glass-card rounded-xl overflow-hidden border border-white/10 relative min-w-[300px]">
+          <section 
+            className="flex flex-col glass-card rounded-xl overflow-hidden border border-white/10 relative min-w-[280px] h-full min-h-0"
+            style={{ 
+              width: isLargeScreen ? `${leftPanelWidth}%` : undefined,
+              flex: isLargeScreen ? 'none' : '1'
+            }}
+          >
             {/* Header */}
             <div className="px-6 py-4 border-b border-white/10 bg-surface/50 backdrop-blur-md flex justify-between items-center z-10">
               <div className="flex items-center gap-3">
@@ -309,7 +388,7 @@ export default function DashboardPage() {
             {activeTab === 'chat' ? (
               <>
                 {/* Chat Messages Area */}
-                <div className="flex-1 overflow-y-auto p-6 scroll-hide pb-2">
+                <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-6 pb-2 chat-scrollbar">
                   <ChatThread messages={messages} quickActions={quickActions} onSelectAction={handleSend} />
                 </div>
 
@@ -355,8 +434,31 @@ export default function DashboardPage() {
             )}
           </section>
 
+          {/* Resizable Divider Handle */}
+          <div 
+            className="hidden lg:flex items-center justify-center cursor-col-resize select-none z-30 group px-1"
+            style={{ width: '24px', flexShrink: 0 }}
+            onMouseDown={handleDividerMouseDown}
+          >
+            <div className={`w-[5px] rounded-full transition-all duration-200 flex flex-col items-center justify-center gap-[3px] ${
+              isDragging 
+                ? 'h-16 bg-primary/60 shadow-[0_0_12px_rgba(208,188,255,0.4)]' 
+                : 'h-10 bg-white/15 group-hover:h-14 group-hover:bg-primary/40 group-hover:shadow-[0_0_8px_rgba(208,188,255,0.2)]'
+            }`}>
+              <div className={`w-[3px] h-[3px] rounded-full transition-colors ${isDragging ? 'bg-primary' : 'bg-white/30 group-hover:bg-primary/60'}`} />
+              <div className={`w-[3px] h-[3px] rounded-full transition-colors ${isDragging ? 'bg-primary' : 'bg-white/30 group-hover:bg-primary/60'}`} />
+              <div className={`w-[3px] h-[3px] rounded-full transition-colors ${isDragging ? 'bg-primary' : 'bg-white/30 group-hover:bg-primary/60'}`} />
+            </div>
+          </div>
+
           {/* Right Panel: Execution Graph */}
-          <section className="flex-1 flex flex-col glass-card rounded-xl border border-white/10 overflow-hidden relative min-w-[300px]">
+          <section 
+            className="flex flex-col glass-card rounded-xl border border-white/10 overflow-hidden relative min-w-[280px] h-full min-h-0"
+            style={{ 
+              width: isLargeScreen ? `${100 - leftPanelWidth}%` : undefined,
+              flex: isLargeScreen ? 'none' : '1'
+            }}
+          >
             {/* Graph Header */}
             <div className="px-6 py-4 border-b border-white/10 bg-surface/30 backdrop-blur-md flex justify-between items-center z-20">
               <h2 className="font-headline-md text-xl text-on-surface flex items-center gap-2">

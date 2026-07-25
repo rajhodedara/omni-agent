@@ -74,8 +74,8 @@ def get_llm_router() -> Router:
             "rpm": 20,
         })
 
-    # 6. Ollama Local
-    if settings.OLLAMA_BASE_URL:
+    # 6. Ollama Local (only if explicitly enabled via OLLAMA_ENABLED=true in .env)
+    if settings.OLLAMA_BASE_URL and settings.OLLAMA_BASE_URL != "http://localhost:11434":
         all_possible_models.append({
             "model_name": "ollama-local",
             "litellm_params": {
@@ -96,14 +96,17 @@ def get_llm_router() -> Router:
 
     # Generate fallback list dynamically from available models
     available_model_names = [m["model_name"] for m in all_possible_models]
-    primary_model = available_model_names[0]
-    fallbacks = [{primary_model: available_model_names[1:]}] if len(available_model_names) > 1 else []
+    fallbacks = []
+    for i, name in enumerate(available_model_names):
+        if i < len(available_model_names) - 1:
+            fallbacks.append({name: available_model_names[i+1:]})
 
     _router = Router(
         model_list=all_possible_models,
         fallbacks=fallbacks,
-        num_retries=1,
-        timeout=15.0
+        num_retries=2,
+        timeout=30.0,
+        retry_after=5,
     )
     return _router
 
