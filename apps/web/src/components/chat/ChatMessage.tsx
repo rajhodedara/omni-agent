@@ -1,6 +1,7 @@
 'use client';
 
 import { formatDate } from '../../lib/utils';
+import { motion } from "framer-motion";
 
 export interface Message {
   id: string;
@@ -13,71 +14,53 @@ export interface Message {
 export default function ChatMessage({ message }: { message: Message }) {
   const isUser = message.role === 'user';
   
+  if (isUser) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col items-end gap-2 w-full"
+      >
+        <div className="bg-primary/20 border border-primary/30 p-4 rounded-xl rounded-tr-none max-w-[90%] shadow-sm">
+          <p className="font-body-sm text-[13px] text-white whitespace-pre-wrap leading-relaxed">{message.content}</p>
+        </div>
+        <div className="text-[10px] text-on-surface-variant/70 mr-1 font-mono">
+          {formatDate(message.timestamp)}
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
-    <div className="animate-slide-up" style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: isUser ? 'flex-end' : 'flex-start',
-      marginBottom: 'var(--space-6)',
-      width: '100%'
-    }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        gap: 'var(--space-3)',
-        flexDirection: isUser ? 'row-reverse' : 'row',
-        maxWidth: '85%'
-      }}>
-        
-        <div style={{
-          width: '32px',
-          height: '32px',
-          borderRadius: 'var(--radius-full)',
-          flexShrink: 0,
-          background: isUser ? 'var(--bg-secondary)' : 'var(--accent-gradient)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: isUser ? 'var(--text-primary)' : 'white',
-          fontSize: '0.8rem',
-          border: '1px solid var(--border-color)'
-        }}>
-          {isUser ? 'U' : '✨'}
-        </div>
-        
-        <div className={isUser ? '' : 'glass'} style={{
-          padding: 'var(--space-4)',
-          borderRadius: 'var(--radius-xl)',
-          borderBottomRightRadius: isUser ? '4px' : 'var(--radius-xl)',
-          borderBottomLeftRadius: isUser ? 'var(--radius-xl)' : '4px',
-          background: isUser ? 'var(--accent-gradient)' : 'var(--bg-glass)',
-          color: isUser ? 'white' : 'var(--text-primary)',
-          boxShadow: 'var(--shadow-sm)',
-          position: 'relative'
-        }}>
-          {message.isTyping ? (
-            <div style={{ display: 'flex', gap: '4px', padding: '4px 0' }}>
-              <span style={{ width: '6px', height: '6px', background: 'var(--text-secondary)', borderRadius: '50%', animation: 'fadeIn 1s infinite alternate' }} />
-              <span style={{ width: '6px', height: '6px', background: 'var(--text-secondary)', borderRadius: '50%', animation: 'fadeIn 1s infinite alternate', animationDelay: '0.2s' }} />
-              <span style={{ width: '6px', height: '6px', background: 'var(--text-secondary)', borderRadius: '50%', animation: 'fadeIn 1s infinite alternate', animationDelay: '0.4s' }} />
-            </div>
-          ) : (
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-              {message.content}
-            </div>
-          )}
-        </div>
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col items-start gap-2 w-full"
+    >
+      <span className="font-label-sm text-[10px] text-secondary uppercase tracking-widest flex items-center gap-2">
+        {message.isTyping && (
+          <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />
+        )}
+        {message.isTyping ? 'Thinking...' : 'System Response'}
+      </span>
+      <div className="glass-panel p-4 rounded-xl rounded-tl-none max-w-[90%] border-white/10 bg-white/5">
+        {message.isTyping ? (
+          <div className="flex gap-1.5 p-1">
+            <span className="w-1.5 h-1.5 bg-secondary/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-1.5 h-1.5 bg-secondary/70 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-1.5 h-1.5 bg-secondary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        ) : (
+          <p className="font-body-sm text-[13px] text-on-surface whitespace-pre-wrap leading-relaxed">
+            {message.content}
+          </p>
+        )}
       </div>
-      
-      <div style={{
-        fontSize: '0.75rem',
-        color: 'var(--text-secondary)',
-        marginTop: 'var(--space-2)',
-        marginRight: isUser ? '44px' : '0',
-        marginLeft: isUser ? '0' : '44px'
-      }}>
-        {formatDate(message.timestamp)}
-      </div>
-    </div>
+      {!message.isTyping && (
+        <div className="text-[10px] text-on-surface-variant/70 ml-1 font-mono">
+          {formatDate(message.timestamp)}
+        </div>
+      )}
+    </motion.div>
   );
 }

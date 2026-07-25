@@ -3,11 +3,20 @@ import { create } from 'zustand';
 export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'failed';
 
 export interface Step {
-  id: string;
-  title: string;
+  id?: string;
+  step_number?: number;
+  step_type?: string;
+  title?: string;
   description?: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  timestamp: number;
+  status: 'pending' | 'running' | 'completed' | 'failed' | string;
+  tool_name?: string;
+  tool_input?: any;
+  tool_output?: any;
+  reasoning?: string;
+  error_message?: string;
+  tokens_used?: number;
+  latency_ms?: number;
+  timestamp?: number;
 }
 
 interface ExecutionState {
@@ -17,6 +26,7 @@ interface ExecutionState {
   setActiveExecution: (id: string | null) => void;
   addStep: (step: Step) => void;
   updateStep: (id: string, updates: Partial<Step>) => void;
+  setExecutionSteps: (steps: Step[]) => void;
   setStatus: (status: ExecutionStatus) => void;
   reset: () => void;
 }
@@ -32,6 +42,7 @@ export const useExecutionStore = create<ExecutionState>((set) => ({
       step.id === id ? { ...step, ...updates } : step
     )
   })),
+  setExecutionSteps: (steps) => set({ executionSteps: steps }),
   setStatus: (status) => set({ status }),
   reset: () => set({ activeExecutionId: null, executionSteps: [], status: 'idle' })
 }));

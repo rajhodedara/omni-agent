@@ -1,6 +1,6 @@
 from typing import List, Dict
 from pydantic import BaseModel, Field
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from .base import BaseTool
 
 class WebSearchInput(BaseModel):

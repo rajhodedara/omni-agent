@@ -212,7 +212,7 @@ async def execute_step(state: AgentState) -> dict[str, Any]:
 
     # Check if this tool requires human approval
     tool = get_tool_by_name(tool_name)
-    if tool and tool.requires_approval:
+    if tool and tool.requires_approval and not state.get("approval_granted"):
         return {
             "status": "waiting_approval",
             "requires_approval": True,
@@ -243,7 +243,14 @@ async def execute_step(state: AgentState) -> dict[str, Any]:
         return {"step_results": [result], "plan": plan}
 
     try:
-        tool_input = current_step.get("tool_input", {}) or {}
+        raw_input = current_step.get("tool_input", {}) or {}
+        if isinstance(raw_input, str):
+            try:
+                tool_input = json.loads(raw_input)
+            except:
+                tool_input = {}
+        else:
+            tool_input = dict(raw_input)
 
         # Inject context from previous steps if the tool input references it
         if state.get("step_results"):
@@ -258,12 +265,25 @@ async def execute_step(state: AgentState) -> dict[str, Any]:
 
         # Remove internal context key before passing to tool
         clean_input = {k: v for k, v in tool_input.items() if not k.startswith("_")}
-        tool_output = await tool.execute(**clean_input)
+        
+        # Validate against tool's Pydantic schema to prevent TypeError from unexpected kwargs
+        from pydantic import ValidationError
+        try:
+            validated_model = tool.input_schema.model_validate(clean_input)
+            validated_input = validated_model.model_dump()
+        except ValidationError as val_err:
+            # If standard validation fails (e.g. extra parameters), try filtering to only expected fields
+            expected_fields = set(tool.input_schema.model_fields.keys())
+            filtered_input = {k: v for k, v in clean_input.items() if k in expected_fields}
+            validated_model = tool.input_schema.model_validate(filtered_input)
+            validated_input = validated_model.model_dump()
+
+        tool_output = await tool.execute(**validated_input)
 
         result = StepResult(
             step_number=current_step["step_number"],
             tool_name=tool_name,
-            tool_input=clean_input,
+            tool_input=validated_input,
             tool_output=tool_output,
             reasoning=f"Executed {tool_name} successfully",
             error=None,
@@ -296,6 +316,7 @@ async def execute_step(state: AgentState) -> dict[str, Any]:
         "plan": plan,
         "current_step_index": idx + 1,
         "retry_count": 0,
+        "approval_granted": False,
     }
 
 
@@ -313,11 +334,11 @@ async def evaluate_progress(state: AgentState) -> dict[str, Any]:
         logger.warning(f"Max steps ({max_steps}) reached, forcing summarization")
         return {"status": "summarizing"}
 
-    # Check if all steps are done
-    if current_idx >= len(plan):
-        return {"status": "summarizing"}
+    # If the previous node explicitly requested human approval, preserve that state
+    if state.get("status") == "waiting_approval":
+        return {"status": "waiting_approval"}
 
-    # Check if the last step failed
+    # Check if the last step failed before checking completion, so failures on the final step are retried/replanned!
     if step_results:
         last_result = step_results[-1]
         if last_result.get("status") == "failed":
@@ -332,6 +353,10 @@ async def evaluate_progress(state: AgentState) -> dict[str, Any]:
             else:
                 logger.info("Step failed after retries, replanning")
                 return {"status": "replanning"}
+
+    # Check if all steps are done
+    if current_idx >= len(plan):
+        return {"status": "summarizing"}
 
     # All good, continue to next step
     return {"status": "executing"}
@@ -404,6 +429,7 @@ async def wait_for_human(state: AgentState) -> dict[str, Any]:
         "status": "evaluating",
         "requires_approval": False,
         "approval_request": None,
+        "approval_granted": True,
     }
 
 

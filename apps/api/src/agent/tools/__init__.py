@@ -10,8 +10,10 @@ from src.agent.tools.base import BaseTool
 from src.agent.tools.web_search import WebSearchTool
 from src.agent.tools.weather import WeatherTool
 from src.agent.tools.news import NewsTool
-from src.agent.tools.maps import GeocodingTool
+from src.agent.tools.maps import MapsTool
 from src.agent.tools.human_input import HumanInputTool
+from src.agent.tools.yelp import YelpSearchTool
+from src.agent.tools.web_scrape import WebScrapeTool
 
 # Registry of all available tools
 _TOOL_REGISTRY: dict[str, BaseTool] = {}
@@ -30,8 +32,10 @@ def _initialize_tools() -> None:
     _register_tool(WebSearchTool())
     _register_tool(WeatherTool())
     _register_tool(NewsTool())
-    _register_tool(GeocodingTool())
+    _register_tool(MapsTool())
     _register_tool(HumanInputTool())
+    _register_tool(YelpSearchTool())
+    _register_tool(WebScrapeTool())
 
 
 def get_all_tools() -> list[BaseTool]:

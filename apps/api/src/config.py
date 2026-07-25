@@ -19,10 +19,11 @@ class Settings(BaseSettings):
     # LLMs
     CEREBRAS_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
-    GITHUB_API_KEY: str = ""
+    GITHUB_TOKEN: str = ""
     GROQ_API_KEY: str = ""
     OPENROUTER_API_KEY: str = ""
     OLLAMA_BASE_URL: str = "http://localhost:11434"
+    YELP_API_KEY: str = ""
     
     # Observability
     LANGFUSE_PUBLIC_KEY: str = ""
