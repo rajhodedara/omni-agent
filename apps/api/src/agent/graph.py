@@ -365,7 +365,13 @@ async def execute_step(state: AgentState) -> dict[str, Any]:
             validated_model = tool.input_schema.model_validate(llm_args)
             validated_input = validated_model.model_dump()
 
-        tool_output = await tool.execute(**validated_input)
+        if tool.name == "human_input" and state.get("approval_granted"):
+            # Intercept human_input execution and grab the user's answer from messages
+            last_msg = state.get("messages", [])[-1] if state.get("messages") else {}
+            response_text = last_msg.get("content", "User provided input.") if last_msg.get("role") == "user" else "User provided input."
+            tool_output = {"response": response_text}
+        else:
+            tool_output = await tool.execute(**validated_input)
 
         result = StepResult(
             step_number=current_step["step_number"],

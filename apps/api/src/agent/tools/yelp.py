@@ -14,56 +14,40 @@ class YelpSearchTool(BaseTool):
     input_schema = YelpSearchInput
     
     async def execute(self, search_term: str, location: str) -> str:
-        query = f"site:yelp.com {search_term} {location}"
-        
-        api_key = os.environ.get("TAVILY_API_KEY")
-        if api_key:
-            try:
-                async with httpx.AsyncClient() as client:
-                    response = await client.post(
-                        "https://api.tavily.com/search",
-                        json={"api_key": api_key, "query": query, "max_results": 5},
-                        timeout=15.0
-                    )
-                    response.raise_for_status()
-                    data = response.json()
-                    results = data.get("results", [])
-                    if results:
-                        formatted_results = []
-                        for r in results:
-                            title = r.get("title", "Unknown").replace(" - Yelp", "")
-                            url = r.get("url", "")
-                            snippet = r.get("content", "No description available.")
-                            formatted_results.append(f"- **{title}**\n  URL: {url}\n  Snippet: \"{snippet}\"")
-                        return "\n\n".join(formatted_results)
-            except Exception:
-                pass # fallback to ddgs
+        # We will use OpenStreetMap Nominatim for POI search as an alternative to Yelp
+        query = f"{search_term} in {location}"
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {"q": query, "format": "json", "limit": 5}
+        headers = {"User-Agent": "PersonalAi-Agent/0.1"}
 
-        import asyncio
-        
-        def run_ddgs():
-            with DDGS() as ddgs:
-                return ddgs.text(query, max_results=5, backend="html")
-                
         try:
-            results = await asyncio.to_thread(run_ddgs)
-            if not results:
-                return f"No results found for '{search_term}' in '{location}' on Yelp."
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, params=params, headers=headers, timeout=15.0)
+                response.raise_for_status()
+                results = response.json()
+                
+                if not results:
+                    return f"No results found for '{search_term}' in '{location}'."
+                
+                formatted_results = []
+                for r in results:
+                    name = r.get("name", "Unknown Place")
+                    display_name = r.get("display_name", "No address available.")
+                    lat = r.get("lat", "")
+                    lon = r.get("lon", "")
+                    osm_type = r.get("osm_type", "")
+                    osm_id = r.get("osm_id", "")
+                    
+                    # Construct a useful URL if possible
+                    url = f"https://www.openstreetmap.org/{osm_type}/{osm_id}" if osm_type and osm_id else ""
+                    
+                    formatted_results.append(
+                        f"- **{name}**\n"
+                        f"  Address: {display_name}\n"
+                        f"  URL: {url}\n"
+                        f"  Coordinates: {lat}, {lon}"
+                    )
+
+                return "\n\n".join(formatted_results)
         except Exception as e:
-            return f"Yelp search failed: {str(e)}"
-
-        formatted_results = []
-        for r in results:
-            title = r.get("title", "Unknown")
-            # Yelp titles usually look like "San Francisco - Sushi - Best Match - Yelp"
-            clean_title = title.replace(" - Yelp", "")
-            url = r.get("href", "")
-            snippet = r.get("body", "No description available.")
-            
-            formatted_results.append(
-                f"- **{clean_title}**\n"
-                f"  URL: {url}\n"
-                f"  Snippet: \"{snippet}\""
-            )
-
-        return "\n\n".join(formatted_results)
+            return f"Search failed: {str(e)}"
