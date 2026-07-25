@@ -54,13 +54,14 @@ export default function ChatMessage({ message }: { message: Message }) {
           </div>
         ) : (
           <div className="flex flex-col gap-1">
-            <ReactMarkdown 
-              className="prose prose-invert max-w-none prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-li:marker:text-primary/50"
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw]}
-            >
-              {message.content}
-            </ReactMarkdown>
+            <div className="prose prose-invert max-w-none prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-li:marker:text-primary/50">
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
             <span className="text-[10px] text-on-surface-variant/50 self-end mt-1">{formatDate(message.timestamp)}</span>
           </div>
         )}

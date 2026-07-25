@@ -14,6 +14,7 @@ from src.agent.tools.maps import MapsTool
 from src.agent.tools.human_input import HumanInputTool
 from src.agent.tools.yelp import YelpSearchTool
 from src.agent.tools.web_scrape import WebScrapeTool
+from src.agent.tools.memory import SaveMemoryFactTool, SaveUserPreferenceTool
 
 # Registry of all available tools
 _TOOL_REGISTRY: dict[str, BaseTool] = {}
@@ -36,6 +37,8 @@ def _initialize_tools() -> None:
     _register_tool(HumanInputTool())
     _register_tool(YelpSearchTool())
     _register_tool(WebScrapeTool())
+    _register_tool(SaveMemoryFactTool())
+    _register_tool(SaveUserPreferenceTool())
 
 
 def get_all_tools() -> list[BaseTool]:

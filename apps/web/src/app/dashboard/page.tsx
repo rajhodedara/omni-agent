@@ -7,8 +7,11 @@ import ChatThread from '../../components/chat/ChatThread';
 import type { Message } from '../../components/chat/ChatMessage';
 import { useExecutionStore } from '../../stores/execution-store';
 import ExecutionGraph from '../../components/graph/ExecutionGraph';
+import ExecutionList from '../../components/dashboard/ExecutionList';
+import MemoryManager from '../../components/dashboard/MemoryManager';
 
 export default function DashboardPage() {
+  const [activeTab, setActiveTab] = useState<'chat' | 'history' | 'memory'>('chat');
   const [messages, setMessages] = useState<Message[]>([]);
   const { status, setStatus, setExecutionSteps, threadId, setThreadId } = useExecutionStore();
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -190,6 +193,7 @@ export default function DashboardPage() {
     setMessages([]);
     setExecutionSteps([]);
     setStatus('idle');
+    setActiveTab('chat');
   };
 
   return (
@@ -235,7 +239,14 @@ export default function DashboardPage() {
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>add</span>
               New Chat
             </button>
-            <button className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all">
+            <button 
+              onClick={() => setActiveTab('history')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'history' 
+                  ? 'bg-primary/10 text-primary border-l-4 border-primary font-medium'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
+              }`}
+            >
               <span className="material-symbols-outlined">history</span>
               History
             </button>
@@ -243,7 +254,14 @@ export default function DashboardPage() {
               <span className="material-symbols-outlined">smart_toy</span>
               Agents
             </button>
-            <button className="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-white/5 transition-all">
+            <button 
+              onClick={() => setActiveTab('memory')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'memory' 
+                  ? 'bg-primary/10 text-primary border-l-4 border-primary font-medium'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/5'
+              }`}
+            >
               <span className="material-symbols-outlined">folder</span>
               Storage
             </button>
@@ -271,36 +289,68 @@ export default function DashboardPage() {
           
           {/* Left Panel: Chat Interface */}
           <section className="flex-1 flex flex-col glass-card rounded-xl overflow-hidden border border-white/10 relative min-w-[300px]">
-            {/* Chat Header */}
+            {/* Header */}
             <div className="px-6 py-4 border-b border-white/10 bg-surface/50 backdrop-blur-md flex justify-between items-center z-10">
               <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${status === 'running' ? 'bg-secondary shadow-[0_0_10px_#89ceff] animate-pulse' : 'bg-tertiary shadow-[0_0_10px_#4edea3]'}`}></div>
-                <h2 className="font-headline-md text-xl text-on-surface">Goal Setting</h2>
+                {activeTab === 'chat' && (
+                  <div className={`w-2 h-2 rounded-full ${status === 'running' ? 'bg-secondary shadow-[0_0_10px_#89ceff] animate-pulse' : 'bg-tertiary shadow-[0_0_10px_#4edea3]'}`}></div>
+                )}
+                <h2 className="font-headline-md text-xl text-on-surface">
+                  {activeTab === 'chat' ? 'Goal Setting' : activeTab === 'history' ? 'Execution History' : 'Neural Storage'}
+                </h2>
               </div>
               <button className="text-on-surface-variant hover:text-primary transition-colors">
                 <span className="material-symbols-outlined text-xl">more_horiz</span>
               </button>
             </div>
             
-            {/* Chat Messages Area */}
-            <div className="flex-1 overflow-y-auto p-6 scroll-hide pb-2">
-              <ChatThread messages={messages} quickActions={quickActions} onSelectAction={handleSend} />
-            </div>
+            {activeTab === 'chat' ? (
+              <>
+                {/* Chat Messages Area */}
+                <div className="flex-1 overflow-y-auto p-6 scroll-hide pb-2">
+                  <ChatThread messages={messages} quickActions={quickActions} onSelectAction={handleSend} />
+                </div>
 
-            {/* Chat Input Area */}
-            <div className="p-4 border-t border-white/10 bg-surface/50 backdrop-blur-md z-10 flex flex-col gap-2">
-              <div className="flex flex-wrap gap-2 px-1">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-[11px] text-on-surface-variant backdrop-blur-sm">
-                  <span className="text-[12px]">🧠</span> Recalled: Prefers dark mode
-                </span>
-              </div>
-              <ChatInput onSend={handleSend} disabled={status === 'running'} isWaitingInput={status === 'waiting_input'} />
-              <div className="text-center mt-1">
-                <span className="text-[10px] text-on-surface-variant/50 font-label-caps uppercase tracking-widest">
-                  {status === 'running' ? 'Agent Processing...' : status === 'waiting_input' ? 'Awaiting Your Response...' : 'Autonomous Agent Active'}
-                </span>
-              </div>
-            </div>
+                {/* Chat Input Area */}
+                <div className="p-4 border-t border-white/10 bg-surface/50 backdrop-blur-md z-10 flex flex-col gap-2">
+                  <div className="flex flex-wrap gap-2 px-1">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-[11px] text-on-surface-variant backdrop-blur-sm">
+                      <span className="text-[12px]">🧠</span> Recalled: Prefers dark mode
+                    </span>
+                  </div>
+                  <ChatInput onSend={handleSend} disabled={status === 'running'} isWaitingInput={status === 'waiting_input'} />
+                  <div className="text-center mt-1">
+                    <span className="text-[10px] text-on-surface-variant/50 font-label-caps uppercase tracking-widest">
+                      {status === 'running' ? 'Agent Processing...' : status === 'waiting_input' ? 'Awaiting Your Response...' : 'Autonomous Agent Active'}
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : activeTab === 'history' ? (
+              <ExecutionList onSelect={(exec) => {
+                const newMessages: Message[] = [
+                  { 
+                    id: `user-${exec.id}`, 
+                    role: 'user', 
+                    content: exec.original_prompt, 
+                    timestamp: new Date(exec.created_at).getTime() 
+                  }
+                ];
+                if (exec.result_summary) {
+                  newMessages.push({
+                    id: `agent-${exec.id}`,
+                    role: 'agent',
+                    content: exec.result_summary,
+                    timestamp: new Date(exec.created_at).getTime() + 1000
+                  });
+                }
+                setMessages(newMessages);
+                setThreadId(exec.id);
+                setActiveTab('chat');
+              }} />
+            ) : (
+              <MemoryManager />
+            )}
           </section>
 
           {/* Right Panel: Execution Graph */}

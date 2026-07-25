@@ -30,14 +30,14 @@ const edgeTypes = {
 };
 
 const nodeWidth = 320;
-const nodeHeight = 180;
+const nodeHeight = 250;
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "TB") => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   
   const isHorizontal = direction === "LR";
-  dagreGraph.setGraph({ rankdir: direction });
+  dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 150 });
 
   nodes.forEach((node) => {
     dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
@@ -89,7 +89,7 @@ export default function ExecutionGraph() {
         status: step.status,
         toolName: step.tool_name,
         toolInput: step.tool_input,
-        reasoning: step.reasoning,
+        reasoning: step.reasoning || step.description,
         error: step.error_message,
         tokens: step.tokens_used,
         latency: step.latency_ms,

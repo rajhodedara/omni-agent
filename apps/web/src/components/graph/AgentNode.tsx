@@ -105,12 +105,12 @@ const AgentNode = ({ data }: AgentNodeProps) => {
         <div className="flex-1 max-h-[100px] overflow-y-auto scroll-hide bg-black/40 rounded-xl p-3 border border-white/5 shadow-inner">
           {data.error ? (
             <p className="text-xs text-[#ff5252] font-mono break-words">{data.error}</p>
-          ) : data.reasoning ? (
-            <p className="text-[12px] text-gray-300 leading-relaxed font-medium">{data.reasoning}</p>
-          ) : data.toolInput ? (
+          ) : data.toolInput && Object.keys(data.toolInput).length > 0 ? (
             <pre className="text-[11px] text-gray-400 font-mono break-words whitespace-pre-wrap">
               {JSON.stringify(data.toolInput, null, 2)}
             </pre>
+          ) : data.reasoning ? (
+            <p className="text-[12px] text-gray-300 leading-relaxed font-medium">{data.reasoning}</p>
           ) : (
             <p className="text-[12px] text-gray-500 italic flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-ping"></span>

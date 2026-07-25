@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     
     # Supabase
     SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
     SUPABASE_JWT_SECRET: str = "your-super-secret-jwt-token-with-at-least-32-characters-long"
     
     # LLMs

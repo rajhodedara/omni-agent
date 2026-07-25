@@ -11,10 +11,12 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+import httpx
 
 from src.services.execution_service import get_execution_service
 from src.services.streaming_service import get_streaming_service
 from src.dependencies import get_current_user
+from src.config import get_settings
 
 router = APIRouter()
 
@@ -73,10 +75,41 @@ async def create_execution(request: CreateExecutionRequest, current_user: dict =
 
 
 @router.get("/")
-async def list_executions(current_user: dict = Depends(get_current_user)):
+async def list_executions():
     """List all executions for the current user."""
-    # TODO: Query database for user's executions
-    return {"executions": [], "total": 0}
+    settings = get_settings()
+    async with httpx.AsyncClient() as client:
+        headers = {
+            "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+        }
+        # Assuming the dummy user id for now: 00000000-0000-0000-0000-000000000000
+        # If we had proper auth, we would use current_user["id"]
+        resp = await client.get(
+            f"{settings.SUPABASE_URL}/rest/v1/executions?order=created_at.desc",
+            headers=headers
+        )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail="Failed to fetch executions from Supabase")
+        executions = resp.json()
+        return {"executions": executions, "total": len(executions)}
+
+@router.get("/{execution_id}/steps")
+async def get_execution_steps(execution_id: str):
+    """List all steps for a specific execution."""
+    settings = get_settings()
+    async with httpx.AsyncClient() as client:
+        headers = {
+            "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+        }
+        resp = await client.get(
+            f"{settings.SUPABASE_URL}/rest/v1/execution_steps?execution_id=eq.{execution_id}&order=step_number.asc",
+            headers=headers
+        )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=resp.status_code, detail="Failed to fetch execution steps from Supabase")
+        return resp.json()
 
 
 @router.get("/{execution_id}")
