@@ -167,3 +167,16 @@ To work on any subsystem, run the following three processes concurrently across 
    ```
 
 *(Access the primary web user dashboard at [http://localhost:3000](http://localhost:3000) and API Interactive Swagger Docs at [http://localhost:8000/docs](http://localhost:8000/docs)).*
+
+---
+
+## 📝 6. Recent Architecture & Feature Updates
+
+### Neural Storage / Memory Management
+- **Dashboard UI**: Integrated a full `MemoryManager` into the dashboard page (`apps/web/src/app/dashboard/page.tsx`), transitioning it from a read-only viewer to an interactive editor. Added visual confidence progress bars, "Add Memory" functionality, and modal editing flows in `MemoryManager.tsx`.
+- **Backend Memory Tools**: Added dedicated agent tools for explicitly saving both conversational facts (`save_memory_fact`) and user preferences (`save_user_preference`) directly into the Supabase PostgreSQL tables.
+- **Cross-Chat Memory Integration**: Connected the LangGraph `load_memory` node (`apps/api/src/agent/graph.py`) to query the Supabase client directly, fetching semantic facts and preferences so the AI agent retains memory state across separate chat sessions.
+
+### Core Bug Fixes
+- **LangGraph Interrupt Parsing Error**: Resolved a critical crash (`'tuple' object has no attribute 'get'`) in the SSE generator (`apps/api/src/api/chat.py`) that occurred when the agent attempted to request human approval. LangGraph yields interrupted states as a tuple of `Interrupt` objects; the stream handler now properly checks types to prevent parsing exceptions.
+- **LLM Rate-Limit Logging**: Augmented backend error logging (`logger.error(..., exc_info=True)`) to properly surface Litellm fallback exhaustion traces, aiding in diagnosing model exhaustion bottlenecks.

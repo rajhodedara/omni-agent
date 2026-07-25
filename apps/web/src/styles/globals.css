@@ -214,4 +214,159 @@
     0%, 100% { box-shadow: 0 0 30px rgba(137, 206, 255, 0.4), inset 0 0 20px rgba(137, 206, 255, 0.1); }
     50% { box-shadow: 0 0 50px rgba(137, 206, 255, 0.7), inset 0 0 30px rgba(137, 206, 255, 0.2); }
   }
+
+  /* === PREMIUM GRAPH V2 === */
+
+  /* Animated grid background that breathes when agent is active */
+  .graph-grid {
+    background-image:
+      radial-gradient(circle, rgba(137, 206, 255, 0.08) 1px, transparent 1px);
+    background-size: 28px 28px;
+    transition: background-size 0.6s ease;
+  }
+  .graph-grid.active {
+    animation: grid-breathe 4s ease-in-out infinite;
+  }
+  @keyframes grid-breathe {
+    0%, 100% { background-size: 28px 28px; opacity: 1; }
+    50% { background-size: 30px 30px; opacity: 0.7; }
+  }
+
+  /* Node selection ring */
+  .node-selected-ring {
+    box-shadow:
+      0 0 0 3px rgba(137, 206, 255, 0.5),
+      0 0 30px rgba(137, 206, 255, 0.3),
+      inset 0 0 20px rgba(137, 206, 255, 0.08);
+  }
+
+  /* Orbiting particle around running nodes */
+  .orbit-ring {
+    position: absolute;
+    inset: -6px;
+    border-radius: inherit;
+    overflow: visible;
+  }
+  .orbit-particle {
+    width: 6px;
+    height: 6px;
+    background: #89ceff;
+    border-radius: 50%;
+    box-shadow: 0 0 12px 4px rgba(137, 206, 255, 0.6);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    animation: orbit 2.5s linear infinite;
+    transform-origin: 0 0;
+  }
+  .orbit-particle:nth-child(2) {
+    animation-delay: -1.25s;
+    background: #4cd7f6;
+    box-shadow: 0 0 12px 4px rgba(76, 215, 246, 0.6);
+  }
+  @keyframes orbit {
+    from { transform: rotate(0deg) translateX(calc(50% + 6px)) rotate(0deg); }
+    to { transform: rotate(360deg) translateX(calc(50% + 6px)) rotate(-360deg); }
+  }
+
+  /* Compact node card */
+  .node-compact {
+    width: 280px;
+    min-height: auto;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .node-compact:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Expanded node card */
+  .node-expanded {
+    width: 360px;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Status pills */
+  .status-pill {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .status-pill-completed {
+    background: rgba(76, 215, 246, 0.12);
+    color: #4cd7f6;
+    border: 1px solid rgba(76, 215, 246, 0.25);
+  }
+  .status-pill-running {
+    background: rgba(137, 206, 255, 0.12);
+    color: #89ceff;
+    border: 1px solid rgba(137, 206, 255, 0.25);
+    animation: pill-pulse 2s ease-in-out infinite;
+  }
+  .status-pill-failed {
+    background: rgba(255, 82, 82, 0.12);
+    color: #ff5252;
+    border: 1px solid rgba(255, 82, 82, 0.25);
+  }
+  .status-pill-pending {
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  @keyframes pill-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.65; }
+  }
+
+  /* Pending node style */
+  .node-pending {
+    opacity: 0.5;
+    filter: grayscale(0.3);
+  }
+
+  /* Detail panel slide */
+  .detail-panel {
+    background: linear-gradient(180deg, rgba(18, 18, 22, 0.95) 0%, rgba(12, 12, 16, 0.98) 100%);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: -8px 0 40px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Edge dash animation for pending connections */
+  .edge-pending-dash {
+    stroke-dasharray: 6 4;
+    animation: dash-march 1s linear infinite;
+  }
+  @keyframes dash-march {
+    to { stroke-dashoffset: -10; }
+  }
+
+  /* Progress bar gradient */
+  .progress-gradient {
+    background: linear-gradient(90deg, #4cd7f6 0%, #89ceff 40%, #c0c1ff 100%);
+    background-size: 200% 100%;
+    animation: progress-shimmer 2s ease infinite;
+  }
+  @keyframes progress-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+  }
+
+  /* Empty state neural pulse */
+  .neural-pulse {
+    animation: neural-breathe 3s ease-in-out infinite;
+  }
+  @keyframes neural-breathe {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.02); }
+  }
 }

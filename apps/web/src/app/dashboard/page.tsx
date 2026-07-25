@@ -361,14 +361,37 @@ export default function DashboardPage() {
                 <span className="material-symbols-outlined text-secondary">account_tree</span>
                 Execution Graph
               </h2>
-              <div className="flex gap-2">
-                <button className="px-3 py-1 rounded-full text-xs border border-white/10 bg-white/5 text-on-surface-variant hover:text-on-surface hover:bg-white/10 transition-colors">Map</button>
-                <button className="px-3 py-1 rounded-full text-xs border border-primary/30 bg-primary/10 text-primary transition-colors">Live</button>
+              <div className="flex items-center gap-3">
+                {/* Step counter */}
+                {useExecutionStore.getState().executionSteps.length > 0 && (
+                  <span className="text-[10px] font-mono text-on-surface-variant bg-white/5 border border-white/10 px-2.5 py-1 rounded-md">
+                    {useExecutionStore.getState().executionSteps.filter(s => s.status === 'completed').length}
+                    /{useExecutionStore.getState().executionSteps.length} steps
+                  </span>
+                )}
+                <div className="flex gap-1.5">
+                  <button className="px-3 py-1 rounded-full text-xs border border-white/10 bg-white/5 text-on-surface-variant hover:text-on-surface hover:bg-white/10 transition-colors">Map</button>
+                  <button className={`px-3 py-1 rounded-full text-xs border transition-colors ${status === 'running' ? 'border-secondary/30 bg-secondary/10 text-secondary' : 'border-primary/30 bg-primary/10 text-primary'}`}>
+                    {status === 'running' ? '● Live' : 'Live'}
+                  </button>
+                </div>
               </div>
             </div>
+
+            {/* Progress Bar */}
+            {useExecutionStore.getState().executionSteps.length > 0 && (
+              <div className="h-[2px] bg-white/5 relative z-20">
+                <div 
+                  className="h-full progress-gradient transition-all duration-700 ease-out"
+                  style={{ 
+                    width: `${(useExecutionStore.getState().executionSteps.filter(s => s.status === 'completed').length / Math.max(useExecutionStore.getState().executionSteps.length, 1)) * 100}%` 
+                  }}
+                />
+              </div>
+            )}
             
             {/* Interactive Graph Area */}
-            <div className="flex-1 relative overflow-hidden bg-surface-container-lowest/50 p-8 flex flex-col dot-pattern">
+            <div className="flex-1 relative overflow-hidden bg-surface-container-lowest/50">
               <div className="absolute inset-0 w-full h-full pointer-events-auto z-10">
                 <ExecutionGraph />
               </div>
@@ -377,15 +400,18 @@ export default function DashboardPage() {
             {/* Status Footer */}
             <div className="px-4 py-3 border-t border-white/10 bg-surface/50 backdrop-blur-md z-20 flex justify-between items-center">
               <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-                <div className={`w-1.5 h-1.5 rounded-full ${status === 'running' ? 'bg-secondary shadow-[0_0_8px_#89ceff] animate-pulse' : 'bg-surface-variant'}`}></div>
+                <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${status === 'running' ? 'bg-secondary shadow-[0_0_8px_#89ceff] animate-pulse' : 'bg-surface-variant'}`}></div>
                 {status === 'running' ? 'Agent processing sub-tasks' : 'Agent standby'}
               </div>
               <div className="flex gap-4 font-mono text-[10px] text-on-surface-variant">
-                <span>Model: Gemini Pro</span>
+                <span className="flex items-center gap-1.5">
+                  <span className={`w-1 h-1 rounded-full ${status === 'running' ? 'bg-green-400' : 'bg-gray-500'}`}></span>
+                  Groq LLaMA 3.3
+                </span>
                 <span className="text-white/20">|</span>
-                <span>Tokens: ~</span>
+                <span>{useExecutionStore.getState().executionSteps.length} nodes</span>
                 <span className="text-white/20">|</span>
-                <span>Latency: ~</span>
+                <span>{useExecutionStore.getState().executionSteps.filter(s => s.status === 'completed').length} completed</span>
               </div>
             </div>
           </section>

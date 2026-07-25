@@ -1,143 +1,178 @@
-import React, { memo } from "react";
-import { Handle, Position } from "@xyflow/react";
-import { motion } from "framer-motion";
+"use client";
 
-interface AgentNodeProps {
-  data: {
-    stepNumber: number;
-    type: string;
-    status: string;
-    toolName?: string;
-    toolInput?: any;
-    reasoning?: string;
-    error?: string;
-    tokens?: number;
-    latency?: number;
-  };
+import React, { memo, MouseEvent } from 'react';
+import { Handle, Position, NodeProps, Node } from '@xyflow/react';
+import { motion } from 'framer-motion';
+
+export interface AgentNodeData extends Record<string, unknown> {
+  stepNumber: number;
+  type: string;
+  status: string;
+  toolName?: string;
+  toolInput?: any;
+  toolOutput?: any;
+  reasoning?: string;
+  error?: string;
+  tokens?: number;
+  latency?: number;
+  isSelected?: boolean;
+  onSelect?: (nodeId: string) => void;
 }
 
-const getIcon = (type: string, toolName?: string) => {
-  if (type === "plan") return "psychology";
-  if (type === "tool_call" && toolName?.includes("search")) return "travel_explore";
-  if (type === "tool_call") return "build_circle";
-  if (type === "summary") return "auto_awesome";
-  return "memory";
-};
+export type AgentNodeType = Node<AgentNodeData, 'agent'>;
 
-const getStatusStyles = (status: string) => {
-  switch (status) {
-    case "completed":
-      return {
-        container: "premium-glass glow-completed",
-        iconColor: "text-neon-teal",
-        pulse: "",
-        spinBorder: "",
-        icon: "check_circle",
-      };
-    case "running":
-      return {
-        container: "premium-glass glow-running neon-pulse-running",
-        iconColor: "text-neon-cyan",
-        pulse: "animate-pulse",
-        spinBorder: "border-t-[#89ceff] animate-spin",
-        icon: "",
-      };
-    case "failed":
-      return {
-        container: "premium-glass glow-failed",
-        iconColor: "text-neon-red",
-        pulse: "",
-        spinBorder: "",
-        icon: "error",
-      };
-    default:
-      return {
-        container: "premium-glass border-white/10",
-        iconColor: "text-gray-400",
-        pulse: "",
-        spinBorder: "",
-        icon: "",
-      };
+/* ── Derive a human-readable label from tool_name or type ── */
+const getLabel = (type: string, toolName?: string): string => {
+  if (toolName) {
+    const map: Record<string, string> = {
+      yelp_search: 'Yelp Search',
+      web_search: 'Web Search',
+      web_scrape: 'Web Scrape',
+      weather: 'Weather',
+      news: 'News Lookup',
+      maps: 'Maps',
+      human_input: 'Human Input',
+      save_memory_fact: 'Save Memory',
+      save_user_preference: 'Save Preference',
+    };
+    return map[toolName] || toolName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
+  const typeMap: Record<string, string> = {
+    plan: 'Planning',
+    tool_call: 'Tool Call',
+    summary: 'Summary',
+    unknown: 'Processing',
+  };
+  return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 };
 
-const AgentNode = ({ data }: AgentNodeProps) => {
-  const styles = getStatusStyles(data.status);
-  const iconName = styles.icon || getIcon(data.type, data.toolName);
+/* ── Icon based on tool name ── */
+const getIcon = (type: string, toolName?: string): string => {
+  if (toolName) {
+    const map: Record<string, string> = {
+      yelp_search: 'restaurant',
+      web_search: 'travel_explore',
+      web_scrape: 'language',
+      weather: 'cloud',
+      news: 'newspaper',
+      maps: 'map',
+      human_input: 'person',
+      save_memory_fact: 'neurology',
+      save_user_preference: 'favorite',
+    };
+    return map[toolName] || 'build_circle';
+  }
+  if (type === 'plan') return 'psychology';
+  if (type === 'summary') return 'auto_awesome';
+  return 'memory';
+};
+
+/* ── Status color config ── */
+const statusConfig: Record<string, { dot: string; text: string; label: string; border: string; bg: string }> = {
+  completed: {
+    dot: 'bg-emerald-400',
+    text: 'text-emerald-400',
+    label: 'Done',
+    border: 'border-emerald-500/20',
+    bg: 'bg-emerald-500/8',
+  },
+  running: {
+    dot: 'bg-sky-400 animate-pulse',
+    text: 'text-sky-400',
+    label: 'Running',
+    border: 'border-sky-500/30',
+    bg: 'bg-sky-500/8',
+  },
+  failed: {
+    dot: 'bg-red-400',
+    text: 'text-red-400',
+    label: 'Failed',
+    border: 'border-red-500/25',
+    bg: 'bg-red-500/8',
+  },
+  pending: {
+    dot: 'bg-gray-500',
+    text: 'text-gray-500',
+    label: 'Pending',
+    border: 'border-white/5',
+    bg: 'bg-white/2',
+  },
+};
+
+const getStatus = (s: string) => statusConfig[s.toLowerCase()] || statusConfig.pending;
+
+function AgentNode({ id, data }: NodeProps<AgentNodeType>) {
+  const status = getStatus(data.status);
+  const icon = getIcon(data.type, data.toolName);
+  const label = getLabel(data.type, data.toolName);
+  const isPending = data.status.toLowerCase() === 'pending';
+
+  const handleClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    if (data.onSelect) data.onSelect(id);
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.5, type: "spring", bounce: 0.4 }}
-      className="relative z-10 flex flex-col items-center gap-4 group"
+      initial={{ opacity: 0, y: 12, scale: 0.96 }}
+      animate={{ opacity: isPending ? 0.5 : 1, y: 0, scale: 1 }}
+      transition={{
+        delay: (data.stepNumber || 0) * 0.08,
+        duration: 0.4,
+        ease: [0.25, 0.46, 0.45, 0.94],
+      }}
+      onClick={handleClick}
+      className="group cursor-pointer"
     >
-      <Handle type="target" position={Position.Top} className="!opacity-0" />
+      <Handle type="target" position={Position.Top} className="!opacity-0 !w-0 !h-0" />
 
-      <div className={`w-[320px] min-h-[180px] rounded-3xl border-2 ${styles.container} flex flex-col p-5 group-hover:scale-[1.03] transition-all duration-400 ease-out`}>
-        
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-4">
-          <div className="relative w-12 h-12 flex-shrink-0">
-            {data.status === "running" && (
-              <>
-                <div className="absolute inset-0 border-2 border-[#89ceff]/20 rounded-full"></div>
-                <div className={`absolute inset-0 border-2 rounded-full border-transparent ${styles.spinBorder}`}></div>
-              </>
-            )}
-            <span className={`material-symbols-outlined absolute inset-0 flex items-center justify-center ${styles.iconColor} text-3xl drop-shadow-md`}>
-              {iconName}
+      <div className={`
+        w-[260px] rounded-2xl border transition-all duration-300
+        bg-[#141418]/90 backdrop-blur-xl
+        ${status.border}
+        hover:border-white/15 hover:bg-[#1a1a1f]/90
+        hover:shadow-lg hover:shadow-black/30
+        hover:-translate-y-0.5
+        ${data.isSelected ? 'border-sky-500/40 shadow-[0_0_20px_rgba(56,189,248,0.12)]' : ''}
+      `}>
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          {/* Icon */}
+          <div className={`
+            w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
+            ${status.bg} border ${status.border}
+          `}>
+            <span className={`material-symbols-outlined text-[18px] ${status.text}`}>
+              {icon}
             </span>
           </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-lg text-white capitalize tracking-wide">
-              {(data.type || "Agent Step").replace("_", " ")}
-            </h3>
-            {data.toolName && (
-              <p className={`text-xs font-semibold uppercase tracking-wider mt-0.5 ${styles.iconColor} ${styles.pulse}`}>
-                {data.toolName.replace("_", " ")}
+
+          {/* Label + Tool */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-medium text-white/90 truncate">
+                {label}
+              </span>
+            </div>
+            {data.reasoning && (
+              <p className="text-[11px] text-white/30 truncate mt-0.5 leading-tight">
+                {data.reasoning}
               </p>
             )}
           </div>
-        </div>
 
-        {/* Content Box */}
-        <div className="flex-1 max-h-[100px] overflow-y-auto scroll-hide bg-black/40 rounded-xl p-3 border border-white/5 shadow-inner">
-          {data.error ? (
-            <p className="text-xs text-[#ff5252] font-mono break-words">{data.error}</p>
-          ) : data.toolInput && Object.keys(data.toolInput).length > 0 ? (
-            <pre className="text-[11px] text-gray-400 font-mono break-words whitespace-pre-wrap">
-              {JSON.stringify(data.toolInput, null, 2)}
-            </pre>
-          ) : data.reasoning ? (
-            <p className="text-[12px] text-gray-300 leading-relaxed font-medium">{data.reasoning}</p>
-          ) : (
-            <p className="text-[12px] text-gray-500 italic flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-500 animate-ping"></span>
-              Initializing core...
-            </p>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/10">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Step</span>
-            <span className="text-xs font-bold text-[#89ceff] bg-[#89ceff]/10 px-2 py-0.5 rounded-md border border-[#89ceff]/20 shadow-[0_0_10px_rgba(137,206,255,0.2)]">
+          {/* Status dot + Step number */}
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <div className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+            <span className="text-[10px] font-mono text-white/20">
               {String(data.stepNumber).padStart(2, '0')}
             </span>
           </div>
-          {data.latency && (
-            <div className="text-[10px] font-mono text-gray-500">
-              {data.latency}ms
-            </div>
-          )}
         </div>
       </div>
 
-      <Handle type="source" position={Position.Bottom} className="!opacity-0" />
+      <Handle type="source" position={Position.Bottom} className="!opacity-0 !w-0 !h-0" />
     </motion.div>
   );
-};
+}
 
 export default memo(AgentNode);

@@ -50,35 +50,36 @@ async def _stream_graph(graph_input: Any, config: dict, thread_id: str) -> Async
             payload = json.dumps(event_data, default=str)
             yield f"data: {payload}\n\n"
             
-            # Log the step to Supabase if step_results exist
-            step_results = node_state.get("step_results", [])
-            if step_results:
-                latest_step = step_results[-1]
+            # Log the step to Supabase if step_results exist and node_state is a dict
+            if isinstance(node_state, dict):
+                step_results = node_state.get("step_results", [])
+                if step_results:
+                    latest_step = step_results[-1]
                 
-                async def insert_step(step, exec_id):
-                    settings = get_settings()
-                    async with httpx.AsyncClient() as client:
-                        headers = {
-                            "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
-                            "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
-                            "Content-Type": "application/json"
-                        }
-                        payload = {
-                            "id": str(uuid.uuid4()),
-                            "execution_id": exec_id,
-                            "step_number": step.get("step_number"),
-                            "step_type": step.get("step_type", "tool_call"),
-                            "status": step.get("status", "completed"),
-                            "tool_name": step.get("tool_name"),
-                            "tool_input": step.get("tool_input"),
-                            "tool_output": step.get("tool_output"),
-                            "reasoning": step.get("reasoning", step.get("description")),
-                            "error_message": step.get("error_message")
-                        }
-                        resp = await client.post(f"{settings.SUPABASE_URL}/rest/v1/execution_steps", headers=headers, json=payload)
-                        resp.raise_for_status()
-                
-                await safe_db_insert(insert_step(latest_step, thread_id))
+                    async def insert_step(step, exec_id):
+                        settings = get_settings()
+                        async with httpx.AsyncClient() as client:
+                            headers = {
+                                "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+                                "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+                                "Content-Type": "application/json"
+                            }
+                            payload = {
+                                "id": str(uuid.uuid4()),
+                                "execution_id": exec_id,
+                                "step_number": step.get("step_number"),
+                                "step_type": step.get("step_type", "tool_call"),
+                                "status": step.get("status", "completed"),
+                                "tool_name": step.get("tool_name"),
+                                "tool_input": step.get("tool_input"),
+                                "tool_output": step.get("tool_output"),
+                                "reasoning": step.get("reasoning", step.get("description")),
+                                "error_message": step.get("error_message")
+                            }
+                            resp = await client.post(f"{settings.SUPABASE_URL}/rest/v1/execution_steps", headers=headers, json=payload)
+                            resp.raise_for_status()
+                    
+                    await safe_db_insert(insert_step(latest_step, thread_id))
 
     # After streaming ends, check the graph's persisted state to determine
     # if execution paused at an interrupt (human input) or truly completed.
@@ -188,7 +189,7 @@ async def event_generator(request: ChatRequest) -> AsyncGenerator[str, None]:
             yield event
 
     except Exception as e:
-        logger.error(f"Error during graph execution: {e}")
+        logger.error(f"Error during graph execution: {e}", exc_info=True)
         yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
 
 
@@ -208,7 +209,7 @@ async def resume_generator(request: ChatResumeRequest) -> AsyncGenerator[str, No
             yield event
 
     except Exception as e:
-        logger.error(f"Error resuming graph execution: {e}")
+        logger.error(f"Error resuming graph execution: {e}", exc_info=True)
         yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
 
 

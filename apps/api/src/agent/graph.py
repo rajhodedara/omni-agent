@@ -75,10 +75,46 @@ async def load_memory(state: AgentState) -> dict[str, Any]:
     """Load user preferences and relevant episodic memory."""
     logger.info("Node: load_memory — Retrieving user preferences")
 
-    # TODO: Integrate Mem0 for semantic memory retrieval
-    # For now, return empty preferences
+    import httpx
+    from src.config import get_settings
+    settings = get_settings()
+    
+    preferences = []
+    facts = []
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            headers = {
+                "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+                "Content-Type": "application/json"
+            }
+            user_id = "00000000-0000-0000-0000-000000000000"
+            
+            # Fetch preferences
+            resp_pref = await client.get(
+                f"{settings.SUPABASE_URL}/rest/v1/user_preferences?user_id=eq.{user_id}",
+                headers=headers
+            )
+            if resp_pref.status_code == 200:
+                preferences = resp_pref.json()
+                
+            # Fetch facts
+            resp_fact = await client.get(
+                f"{settings.SUPABASE_URL}/rest/v1/memory_facts?user_id=eq.{user_id}",
+                headers=headers
+            )
+            if resp_fact.status_code == 200:
+                facts = resp_fact.json()
+    except Exception as e:
+        logger.error(f"Failed to load memory: {e}")
+
+    # Combine facts and preferences into the state. 
+    # For now, we'll store both in user_preferences to provide context to the planner.
+    combined_memory = preferences + facts
+
     return {
-        "user_preferences": [],
+        "user_preferences": combined_memory,
         "status": "planning",
     }
 
@@ -98,10 +134,17 @@ async def plan_task(state: AgentState) -> dict[str, Any]:
         context_parts.append(f"Constraints: {json.dumps(state['constraints'])}")
 
     if state.get("user_preferences"):
-        prefs = "; ".join(
-            p.get("fact", str(p)) for p in state["user_preferences"]
-        )
-        context_parts.append(f"Known user preferences: {prefs}")
+        memories = []
+        for p in state["user_preferences"]:
+            if "fact" in p:
+                memories.append(p["fact"])
+            elif "key" in p and "value" in p:
+                memories.append(f"{p.get('category', 'Preference')} - {p['key']}: {p['value']}")
+            else:
+                memories.append(str(p))
+                
+        prefs = "\n".join(f"- {m}" for m in memories)
+        context_parts.append(f"Memory/User Context:\n{prefs}")
 
     if state.get("step_results"):
         completed = [

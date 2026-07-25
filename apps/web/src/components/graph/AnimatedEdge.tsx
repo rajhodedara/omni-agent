@@ -1,5 +1,14 @@
+'use client';
+
 import React from 'react';
-import { BaseEdge, EdgeProps, getBezierPath } from '@xyflow/react';
+import { BaseEdge, EdgeProps, getSmoothStepPath, Edge } from '@xyflow/react';
+
+export interface AnimatedEdgeData extends Record<string, unknown> {
+  sourceStatus?: string;
+  targetStatus?: string;
+}
+
+export type AnimatedEdgeType = Edge<AnimatedEdgeData, 'animatedEdge'>;
 
 export default function AnimatedEdge({
   id,
@@ -10,51 +19,66 @@ export default function AnimatedEdge({
   sourcePosition,
   targetPosition,
   style = {},
+  data,
   markerEnd,
   animated,
-}: EdgeProps) {
-  const [edgePath, labelX, labelY] = getBezierPath({
+}: EdgeProps<AnimatedEdgeType>) {
+  const [edgePath] = getSmoothStepPath({
     sourceX,
     sourceY,
     sourcePosition,
     targetX,
     targetY,
     targetPosition,
+    borderRadius: 16,
   });
+
+  const sourceStatus = data?.sourceStatus;
+  const targetStatus = data?.targetStatus;
+
+  // Subtle color logic
+  let strokeColor = 'rgba(255,255,255,0.06)';
+  let particleColor = '#38bdf8';
+
+  if (sourceStatus === 'completed' && targetStatus === 'running') {
+    strokeColor = 'rgba(56, 189, 248, 0.25)';
+    particleColor = '#38bdf8';
+  } else if (sourceStatus === 'completed' && targetStatus === 'completed') {
+    strokeColor = 'rgba(52, 211, 153, 0.18)';
+    particleColor = '#34d399';
+  } else if (sourceStatus === 'completed') {
+    strokeColor = 'rgba(255,255,255,0.08)';
+  }
+
+  const isPending = !sourceStatus || sourceStatus === 'pending' || targetStatus === 'pending';
+  const strokeWidth = animated ? 2 : isPending ? 1 : 1.5;
 
   return (
     <>
-      <defs>
-        <filter id={`glow-${id}`} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="3" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
-        <radialGradient id={`particleGlow-${id}`}>
-          <stop offset="0%" stopColor="#89ceff" stopOpacity="1" />
-          <stop offset="50%" stopColor="#4cd7f6" stopOpacity="0.8" />
-          <stop offset="100%" stopColor="#89ceff" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-
-      {/* Base Path (Glowing) */}
-      <BaseEdge 
-        path={edgePath} 
-        markerEnd={markerEnd} 
+      {/* Base edge */}
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        markerEnd={markerEnd}
         style={{
           ...style,
-          strokeWidth: animated ? 3 : 2,
-          stroke: animated ? 'rgba(137, 206, 255, 0.6)' : 'rgba(255, 255, 255, 0.1)',
-          filter: animated ? `url(#glow-${id})` : 'none',
-          transition: 'all 0.3s ease',
-        }} 
-        className={animated ? "animate-pulse" : ""}
+          strokeWidth,
+          stroke: strokeColor,
+          transition: 'stroke 0.5s ease',
+        }}
+        className={isPending ? 'edge-pending-dash' : ''}
       />
 
-      {/* Animated Data Particle */}
+      {/* Single subtle particle on active edges */}
       {animated && (
-        <circle r="6" fill={`url(#particleGlow-${id})`} filter={`url(#glow-${id})`}>
-          <animateMotion dur="1.5s" repeatCount="indefinite" path={edgePath} />
-        </circle>
+        <>
+          <circle r={2.5} fill={particleColor} opacity={0.8}>
+            <animateMotion dur="2.5s" repeatCount="indefinite" path={edgePath} />
+          </circle>
+          <circle r={2} fill={particleColor} opacity={0.4}>
+            <animateMotion dur="2.5s" repeatCount="indefinite" path={edgePath} begin="1.2s" />
+          </circle>
+        </>
       )}
     </>
   );
