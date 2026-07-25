@@ -53,17 +53,17 @@ class YelpSearchTool(BaseTool):
             return f"Yelp search failed: {str(e)}"
 
         formatted_results = []
-            for r in results:
-                title = r.get("title", "Unknown")
-                # Yelp titles usually look like "San Francisco - Sushi - Best Match - Yelp"
-                clean_title = title.replace(" - Yelp", "")
-                url = r.get("href", "")
-                snippet = r.get("body", "No description available.")
-                
-                formatted_results.append(
-                    f"- **{clean_title}**\n"
-                    f"  URL: {url}\n"
-                    f"  Snippet: \"{snippet}\""
-                )
+        for r in results:
+            title = r.get("title", "Unknown")
+            # Yelp titles usually look like "San Francisco - Sushi - Best Match - Yelp"
+            clean_title = title.replace(" - Yelp", "")
+            url = r.get("href", "")
+            snippet = r.get("body", "No description available.")
+            
+            formatted_results.append(
+                f"- **{clean_title}**\n"
+                f"  URL: {url}\n"
+                f"  Snippet: \"{snippet}\""
+            )
 
-            return "\n\n".join(formatted_results)
+        return "\n\n".join(formatted_results)
