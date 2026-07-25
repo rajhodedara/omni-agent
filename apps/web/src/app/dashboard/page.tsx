@@ -77,6 +77,19 @@ export default function DashboardPage() {
               setThreadId(null);
               setMessages(prev => prev.filter(m => m.id !== 'typing'));
             }
+
+            if (event.type === 'error') {
+              setStatus('idle');
+              setMessages(prev => {
+                const newMsgs = prev.filter(m => m.id !== 'typing');
+                return [...newMsgs, {
+                  id: Date.now().toString(),
+                  role: 'agent',
+                  content: `⚠️ Error: ${event.error || 'An unexpected error occurred during execution.'}`,
+                  timestamp: Date.now()
+                }];
+              });
+            }
           } catch (err) {
             console.error('Failed to parse SSE JSON', err);
           }

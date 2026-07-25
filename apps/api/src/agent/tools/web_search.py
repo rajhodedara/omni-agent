@@ -4,6 +4,7 @@ from duckduckgo_search import DDGS
 import os
 import httpx
 from .base import BaseTool
+from src.config import get_settings
 
 class WebSearchInput(BaseModel):
     query: str = Field(..., description="The search query to look up on the web.")
@@ -15,7 +16,7 @@ class WebSearchTool(BaseTool):
     input_schema = WebSearchInput
 
     async def execute(self, query: str, max_results: int = 5) -> List[Dict[str, str]]:
-        api_key = os.environ.get("TAVILY_API_KEY")
+        api_key = get_settings().TAVILY_API_KEY
         if api_key:
             try:
                 async with httpx.AsyncClient() as client:

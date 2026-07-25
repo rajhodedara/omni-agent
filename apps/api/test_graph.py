@@ -3,15 +3,14 @@ import uuid
 import json
 from src.agent.graph import agent_graph
 from src.agent.state import AgentState
-from langgraph.types import Command
 
 async def main():
     thread_id = str(uuid.uuid4())
     config = {"configurable": {"thread_id": thread_id}}
     
     initial_state = AgentState(
-        original_prompt="Plan a trip to Japan",
-        messages=[{"role": "user", "content": "Plan a trip to Japan"}],
+        original_prompt="Plan a 5 day trip to Japan with a $2000 budget.",
+        messages=[{"role": "user", "content": "Plan a 5 day trip to Japan with a $2000 budget."}],
         status="parsing",
         constraints={},
         user_preferences=[],
@@ -28,25 +27,15 @@ async def main():
     print("=== STARTING GRAPH ===")
     async for output in agent_graph.astream(initial_state, config=config):
         for node, state in output.items():
-            print(f"Node completed: {node}")
-            
-    graph_state = agent_graph.get_state(config)
-    if graph_state and graph_state.next:
-        print("\n=== GRAPH PAUSED ===")
-        print(f"Pending nodes: {graph_state.next}")
-        print("Resuming...")
-        
-        resume_input = Command(resume={"response": "15 days and 2000dollars"})
-        async for output in agent_graph.astream(resume_input, config=config):
-            for node, state in output.items():
-                print(f"Node completed: {node}")
-                
-        graph_state2 = agent_graph.get_state(config)
-        if graph_state2 and graph_state2.next:
-            print("\n=== GRAPH PAUSED AGAIN ===")
-            print(f"Pending nodes: {graph_state2.next}")
-        else:
-            print("\n=== GRAPH FINISHED ===")
+            print(f"\n--- Node completed: {node} ---")
+            if node == "plan_task":
+                print(f"Generated Plan: {json.dumps(state.get('plan', []), indent=2)}")
+            elif node == "execute_step":
+                if state.get("step_results"):
+                    last_res = state["step_results"][-1]
+                    print(f"Step {last_res.get('step_number')} ({last_res.get('tool_name')}): {str(last_res.get('tool_output'))[:300]}...")
+            elif node == "summarize":
+                print(f"\nFINAL SUMMARY:\n{state.get('final_summary')}\n")
 
 if __name__ == "__main__":
     asyncio.run(main())

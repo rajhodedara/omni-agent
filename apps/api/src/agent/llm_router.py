@@ -23,7 +23,7 @@ def get_llm_router() -> Router:
         {
             "model_name": "gemini-flash",
             "litellm_params": {
-                "model": "gemini/gemini-2.5-flash",
+                "model": "gemini/gemini-1.5-flash",
                 "api_key": settings.GEMINI_API_KEY.strip(),
             },
             "tpm": 15 * 1000,

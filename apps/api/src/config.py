@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str = ""
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     YELP_API_KEY: str = ""
+    TAVILY_API_KEY: str = ""
     
     # Observability
     LANGFUSE_PUBLIC_KEY: str = ""
