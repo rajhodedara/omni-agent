@@ -61,7 +61,7 @@ async def test_maps_tool_not_found():
 async def test_weather_tool():
     tool = WeatherTool()
     geo_response = MagicMock()
-    geo_response.json.return_value = {"results": [{"latitude": 35.68, "longitude": 139.76}]}
+    geo_response.json.return_value = [{"lat": "35.68", "lon": "139.76"}]
     weather_response = MagicMock()
     weather_response.json.return_value = {"current_weather": {"temperature": 22.5, "windspeed": 10.0}}
 
@@ -77,7 +77,12 @@ async def test_web_search_tool():
     mock_ddgs_instance.text.return_value = [
         {"title": "Test Result", "href": "https://example.com", "body": "Snippet text"}
     ]
-    with patch("src.agent.tools.web_search.DDGS") as mock_ddgs:
+    
+    mock_settings = MagicMock()
+    mock_settings.TAVILY_API_KEY = None
+    
+    with patch("src.agent.tools.web_search.get_settings", return_value=mock_settings), \
+         patch("src.agent.tools.web_search.DDGS") as mock_ddgs:
         mock_ddgs.return_value.__enter__.return_value = mock_ddgs_instance
         res = await tool.execute(query="test query", max_results=1)
         assert len(res) == 1

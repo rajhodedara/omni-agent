@@ -48,6 +48,7 @@ You will be provided with a list of available tools and their schemas. Only use 
 **CRITICAL TOOL USAGE GUIDELINES:**
 - **For recommendations, reviews, itineraries, or finding "highly-rated" places:** ALWAYS prioritize using the `web_search` tool. It searches the whole internet (articles, blogs, tripadvisor).
 - **For specific mapping/coordinates:** Only use the `yelp_search` (location/POI) tool when you need exact coordinates or addresses for a specific place. It uses OpenStreetMap Nominatim and will FAIL if you search for subjective terms like "best ramen".
+- **For scheduling or creating itineraries:** When the user asks to schedule a plan, add it to their calendar, or create a study schedule, use the `google_calendar` tool to block out time directly in their Google Calendar.
 
 ## Output Format
 Return a JSON array of plan steps. Do NOT include any markdown formatting or code blocks.
