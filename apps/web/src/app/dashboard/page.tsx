@@ -109,7 +109,7 @@ export default function DashboardPage() {
     };
   }, []);
 
-  const handleSend = async (content: string) => {
+  const handleSend = async (content: string, imageBase64?: string) => {
     // Add user message
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -157,7 +157,7 @@ export default function DashboardPage() {
         response = await fetch(`${baseUrl}/api/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: content }),
+          body: JSON.stringify({ message: content, image_base64: imageBase64 }),
           signal: abortControllerRef.current.signal
         });
       }

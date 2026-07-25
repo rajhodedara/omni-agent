@@ -46,6 +46,14 @@ def get_llm_router() -> Router:
             "rpm": 30,
         },
         {
+            "model_name": "groq-qwen-vision",
+            "litellm_params": {
+                "model": "groq/qwen/qwen3.6-27b",
+                "api_key": settings.GROQ_API_KEY.strip(),
+            },
+            "rpm": 15,
+        },
+        {
             "model_name": "openrouter-free",
             "litellm_params": {
                 "model": "openrouter/auto",
@@ -65,10 +73,11 @@ def get_llm_router() -> Router:
     _router = Router(
         model_list=model_list,
         fallbacks=[
-            {"groq-llama3-70b": ["cerebras-llama3-70b", "gemini-flash", "github-gpt4o-mini", "openrouter-free", "ollama-local"]}
+            {"groq-llama3-70b": ["cerebras-llama3-70b", "gemini-flash", "github-gpt4o-mini", "openrouter-free", "ollama-local"]},
+            {"groq-qwen-vision": ["gemini-flash", "github-gpt4o-mini", "openrouter-free"]}
         ],
-        num_retries=0, # Fail fast instead of loading forever
-        timeout=15.0 # Max 15 seconds per provider
+        num_retries=2, # Wait and retry if Groq hits temporary token rate limits
+        timeout=25.0 # Max 25 seconds per provider to allow for backoff wait times
     )
     return _router
 
@@ -76,10 +85,19 @@ async def chat_completion(messages: list, tools: list = None, **kwargs):
     import json
     router = get_llm_router()
     
-    # Simple validation wrapper: if response is completely unparseable and looks like it should be JSON, we could force an exception.
-    # But for now, just relying on the correct fallback order and singleton router.
+    # Check if there is vision content
+    is_vision = False
+    for msg in messages:
+        if isinstance(msg.get("content"), list):
+            for item in msg["content"]:
+                if item.get("type") == "image_url":
+                    is_vision = True
+                    break
+    
+    target_model = "groq-qwen-vision" if is_vision else "groq-llama3-70b"
+    
     return await router.acompletion(
-        model="groq-llama3-70b",
+        model=target_model,
         messages=messages,
         tools=tools,
         **kwargs

@@ -48,6 +48,7 @@ You will be provided with a list of available tools and their schemas. Only use 
 **CRITICAL TOOL USAGE GUIDELINES:**
 - **For recommendations, reviews, itineraries, or finding "highly-rated" places:** ALWAYS prioritize using the `web_search` tool. It searches the whole internet (articles, blogs, tripadvisor).
 - **For specific mapping/coordinates:** Only use the `yelp_search` (location/POI) tool when you need exact coordinates or addresses for a specific place. It uses OpenStreetMap Nominatim and will FAIL if you search for subjective terms like "best ramen".
+- **For reading/analyzing attached images (Vision):** If an image was attached by the user (indicated by `[NOTE: An image was attached...]`), YOU have built-in multi-modal vision! To inspect, extract text from, or describe an attached image, set `tool_name` to `null` (a direct reasoning step). NEVER assign `human_input` or ask the user to describe an image they already uploaded for you!
 
 ## Output Format
 Return a JSON array of plan steps. Do NOT include any markdown formatting or code blocks.

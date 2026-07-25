@@ -20,6 +20,7 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     message: str
     conversation_id: str | None = None
+    image_base64: str | None = None
 
 class ChatResumeRequest(BaseModel):
     thread_id: str
@@ -133,9 +134,19 @@ async def _stream_graph(graph_input: Any, config: dict, thread_id: str) -> Async
 
 async def event_generator(request: ChatRequest) -> AsyncGenerator[str, None]:
     """Generates SSE events by streaming the LangGraph agent state."""
+    
+    # Format message for multi-modal if image is present
+    if request.image_base64:
+        content = [
+            {"type": "text", "text": request.message},
+            {"type": "image_url", "image_url": {"url": request.image_base64}}
+        ]
+    else:
+        content = request.message
+
     initial_state = AgentState(
         original_prompt=request.message,
-        messages=[{"role": "user", "content": request.message}],
+        messages=[{"role": "user", "content": content}],
         status="parsing",
         constraints={},
         user_preferences=[],

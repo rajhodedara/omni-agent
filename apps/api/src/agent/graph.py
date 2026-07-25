@@ -128,7 +128,7 @@ async def plan_task(state: AgentState) -> dict[str, Any]:
         f"- **{t.name}**: {t.description}" for t in tools
     )
 
-    context_parts = [f"User request: {state['original_prompt']}"]
+    context_parts = []
 
     if state.get("constraints"):
         context_parts.append(f"Constraints: {json.dumps(state['constraints'])}")
@@ -153,16 +153,21 @@ async def plan_task(state: AgentState) -> dict[str, Any]:
         ]
         context_parts.append(f"Previously completed steps:\n" + "\n".join(completed))
 
+    context_text = f"{chr(10).join(context_parts)}\n\nAvailable tools:\n{tool_descriptions}\n\nGenerate the execution plan as a JSON array of steps."
+    
+    # Retrieve user input; if it contains an image, pass a text placeholder to the planner
+    # to save 4,000+ tokens and prevent Groq rate limits!
+    user_content = state.get("messages", [{"content": state["original_prompt"]}])[0]["content"]
+    
+    if isinstance(user_content, list):
+        text_part = state["original_prompt"]
+        final_content = f"User request: {text_part} [NOTE: An image was attached by the user for analysis]\n\n{context_text}"
+    else:
+        final_content = f"User request: {user_content}\n\n{context_text}"
+
     messages = [
         {"role": "system", "content": PLANNER_SYSTEM_PROMPT},
-        {
-            "role": "user",
-            "content": (
-                f"{chr(10).join(context_parts)}\n\n"
-                f"Available tools:\n{tool_descriptions}\n\n"
-                "Generate the execution plan as a JSON array of steps."
-            ),
-        },
+        {"role": "user", "content": final_content},
     ]
 
     response = await chat_completion(messages=messages)
@@ -281,17 +286,27 @@ async def execute_step(state: AgentState) -> dict[str, Any]:
         f"{current_step['description']} (tool: {tool_name})"
     )
 
-    # If step has no tool, it's a reasoning step — use LLM directly
+    # If step has no tool, it's a reasoning step — use LLM directly (and include image if available!)
     if not tool_name:
+        user_content = state.get("messages", [{"content": state.get("original_prompt", "")}])[0]["content"]
+        step_text = (
+            f"Step to execute: {current_step['description']}\n"
+            f"Original Goal: {state.get('original_prompt', '')}\n"
+            f"Context from previous steps: {json.dumps(state.get('step_results', []))}"
+        )
+        
+        # Attach the image to the executor if an image was provided in the initial message
+        if isinstance(user_content, list):
+            exec_content = [{"type": "text", "text": step_text}]
+            for item in user_content:
+                if item.get("type") == "image_url":
+                    exec_content.append(item)
+        else:
+            exec_content = step_text
+
         messages = [
             {"role": "system", "content": EXECUTOR_SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": (
-                    f"Step: {current_step['description']}\n"
-                    f"Context from previous steps: {json.dumps(state.get('step_results', []))}"
-                ),
-            },
+            {"role": "user", "content": exec_content},
         ]
         response = await chat_completion(messages=messages)
         result = StepResult(
