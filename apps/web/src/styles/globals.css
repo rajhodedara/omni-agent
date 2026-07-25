@@ -3,6 +3,7 @@
 
 @import "tailwindcss";
 @config "../../tailwind.config.ts";
+@plugin "@tailwindcss/typography";
 
 @layer base {
   :root {
@@ -164,5 +165,53 @@
   }
   ::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Premium Graph Aesthetics */
+  .premium-glass {
+    background: linear-gradient(180deg, rgba(30, 30, 35, 0.6) 0%, rgba(20, 20, 25, 0.8) 100%);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .glow-running {
+    box-shadow: 0 0 30px rgba(137, 206, 255, 0.4), inset 0 0 20px rgba(137, 206, 255, 0.1);
+    border-color: rgba(137, 206, 255, 0.6);
+  }
+
+  .glow-completed {
+    box-shadow: 0 0 20px rgba(76, 215, 246, 0.3), inset 0 0 10px rgba(76, 215, 246, 0.1);
+    border-color: rgba(76, 215, 246, 0.4);
+  }
+
+  .glow-failed {
+    box-shadow: 0 0 25px rgba(255, 82, 82, 0.4), inset 0 0 15px rgba(255, 82, 82, 0.1);
+    border-color: rgba(255, 82, 82, 0.5);
+  }
+
+  .text-neon-cyan {
+    color: #89ceff;
+    text-shadow: 0 0 10px rgba(137, 206, 255, 0.5);
+  }
+  
+  .text-neon-teal {
+    color: #4cd7f6;
+    text-shadow: 0 0 10px rgba(76, 215, 246, 0.5);
+  }
+
+  .text-neon-red {
+    color: #ff5252;
+    text-shadow: 0 0 10px rgba(255, 82, 82, 0.5);
+  }
+
+  .neon-pulse-running {
+    animation: neon-pulse-cyan 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes neon-pulse-cyan {
+    0%, 100% { box-shadow: 0 0 30px rgba(137, 206, 255, 0.4), inset 0 0 20px rgba(137, 206, 255, 0.1); }
+    50% { box-shadow: 0 0 50px rgba(137, 206, 255, 0.7), inset 0 0 30px rgba(137, 206, 255, 0.2); }
   }
 }

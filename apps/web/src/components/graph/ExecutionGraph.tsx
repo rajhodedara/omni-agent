@@ -29,13 +29,13 @@ const edgeTypes = {
   animatedEdge: AnimatedEdge,
 };
 
-const dagreGraph = new dagre.graphlib.Graph();
-dagreGraph.setDefaultEdgeLabel(() => ({}));
-
 const nodeWidth = 320;
 const nodeHeight = 180;
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = "TB") => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  
   const isHorizontal = direction === "LR";
   dagreGraph.setGraph({ rankdir: direction });
 
