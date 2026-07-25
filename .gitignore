@@ -1,20 +1,63 @@
+# Local environment variables and secrets (NEVER commit these)
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
+env*
+!env.example
+!env.example.*
+
+# Node / Next.js
 node_modules/
+.next/
+out/
+next-env.d.ts
+tsconfig.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-dist/
-build/
-.next/
+.ipynb_checkpoints/
 *.egg-info/
-.venv/
-venv/
+.eggs/
+.coverage
+.coverage.*
+htmlcov/
+*.log
+
+# Databases & Caches
 *.db
 *.sqlite
+*.local.db
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+# Operating System Files
 .DS_Store
 Thumbs.db
+
 token.json
+desktop.ini
+
+# Test dumps and local outputs
+*_test.json
+*_working.json
+tavily_*.json
