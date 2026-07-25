@@ -1,43 +1,44 @@
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
 
 class Settings(BaseSettings):
     # App
-    SECRET_KEY: str = "default_secret_key"
-    FRONTEND_URL: str = "http://localhost:3000"
     ENVIRONMENT: str = "development"
-    MAX_STEPS: int = 50
-    MAX_TOKENS: int = 8192
-
-    # Databases
+    FRONTEND_URL: str = "http://localhost:3000"
+    SECRET_KEY: str = "dev-secret-key"
+    
+    # DB & Services
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/personalai"
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str = "redis://localhost:6379"
     TEMPORAL_HOST: str = "localhost:7233"
-
-    # LLM API Keys
-    CEREBRAS_API_KEY: Optional[str] = None
-    GEMINI_API_KEY: Optional[str] = None
-    GITHUB_API_KEY: Optional[str] = None
-    GROQ_API_KEY: Optional[str] = None
-    OPENROUTER_API_KEY: Optional[str] = None
+    
+    # Supabase
+    SUPABASE_URL: str = ""
+    SUPABASE_JWT_SECRET: str = "your-super-secret-jwt-token-with-at-least-32-characters-long"
+    
+    # LLMs
+    CEREBRAS_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
+    GITHUB_API_KEY: str = ""
+    GROQ_API_KEY: str = ""
+    OPENROUTER_API_KEY: str = ""
     OLLAMA_BASE_URL: str = "http://localhost:11434"
+    
+    # Observability
+    LANGFUSE_PUBLIC_KEY: str = ""
+    LANGFUSE_SECRET_KEY: str = ""
+    LANGFUSE_HOST: str = "https://cloud.langfuse.com"
+    
+    # Agent Constraints
+    MAX_STEPS: int = 20
+    MAX_TOKENS_PER_EXECUTION: int = 100000
 
-    # Tool APIs
-    YELP_API_KEY: Optional[str] = None
-    AMADEUS_API_KEY: Optional[str] = None
-    TAVILY_API_KEY: Optional[str] = None
-    MAPBOX_API_KEY: Optional[str] = None
-
-    # Services
-    SUPABASE_URL: Optional[str] = None
-    SUPABASE_KEY: Optional[str] = None
-    LANGFUSE_PUBLIC_KEY: Optional[str] = None
-    LANGFUSE_SECRET_KEY: Optional[str] = None
-
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
-
-settings = Settings()
+    model_config = SettingsConfigDict(
+        # Look for .env in current dir, then fallback to parent dir (monorepo root)
+        env_file=(".env", "../../.env"), 
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
 
 def get_settings() -> Settings:
-    return settings
+    return Settings()

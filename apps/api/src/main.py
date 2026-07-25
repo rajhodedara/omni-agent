@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from src.api.router import api_router
 from src.dependencies import get_settings
 from src.models.database import init_db
+from src.api.middleware import RequestLoggingMiddleware, SupabaseAuthMiddleware, RateLimitingMiddleware
 from typing import AsyncGenerator
 
 settings = get_settings()
@@ -22,6 +23,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Apply middlewares (order matters: outermost to innermost)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.FRONTEND_URL],
@@ -29,6 +31,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(RateLimitingMiddleware)
+app.add_middleware(SupabaseAuthMiddleware)
 
 app.include_router(api_router, prefix="/api")
 
