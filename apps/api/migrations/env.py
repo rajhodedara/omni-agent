@@ -15,6 +15,7 @@ from src.models.execution import *
 from src.models.conversation import *
 from src.models.memory import *
 from src.models.tool import *
+from src.models.email import *
 
 config = context.config
 settings = get_settings()

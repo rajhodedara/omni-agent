@@ -42,7 +42,14 @@ async def _stream_graph(graph_input: Any, config: dict, thread_id: str) -> Async
     (waiting for human input) vs. truly completed.
     """
     async for output in agent_graph.astream(graph_input, config=config):
+        if not isinstance(output, dict):
+            # LangGraph can yield non-dict values (e.g. tuples) when resuming
+            # from an interrupt — safely skip these.
+            continue
         for node_name, node_state in output.items():
+            # Ensure node_state is a dict before attempting .get() calls
+            if not isinstance(node_state, dict):
+                node_state = {"raw": str(node_state)}
             event_data = {
                 "type": "node_update",
                 "node": node_name,

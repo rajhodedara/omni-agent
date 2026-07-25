@@ -14,7 +14,7 @@ dependencies = [
     "python-jose[cryptography]",
     "httpx",
     "redis",
-    "litellm==1.80.0",
+    "litellm==1.91.4",
     "langgraph",
     "langchain-core",
     "temporalio",

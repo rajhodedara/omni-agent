@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str = ""
     SUPABASE_JWT_SECRET: str = "your-super-secret-jwt-token-with-at-least-32-characters-long"
     
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/oauth2callback"
+    GOOGLE_REFRESH_TOKEN: str = ""
+    
     # LLMs
     CEREBRAS_API_KEY: str = ""
     GEMINI_API_KEY: str = ""

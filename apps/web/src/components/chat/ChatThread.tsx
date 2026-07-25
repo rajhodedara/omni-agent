@@ -65,7 +65,11 @@ export default function ChatThread({ messages, quickActions = [], onSelectAction
   return (
     <div className="flex flex-col gap-6 w-full">
       {messages.map(msg => (
-        <ChatMessage key={msg.id} message={msg} />
+        <ChatMessage 
+          key={msg.id} 
+          message={msg} 
+          onSelectOption={onSelectAction}
+        />
       ))}
       <div ref={bottomRef} className="h-[1px]" />
     </div>

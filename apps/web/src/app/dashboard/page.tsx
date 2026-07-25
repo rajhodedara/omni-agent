@@ -135,6 +135,9 @@ export default function DashboardPage() {
             // Human input requested — show prompt in chat and re-enable input
             if (event.type === 'human_input') {
               const question = event.data?.question || 'I need more information to proceed.';
+              const options = event.data?.options || event.data?.approval_request?.options || [];
+              const approvalRequest = event.data?.approval_request || null;
+
               setThreadId(event.thread_id || null);
               setMessages(prev => {
                 const newMsgs = prev.filter(m => m.id !== 'typing');
@@ -142,7 +145,9 @@ export default function DashboardPage() {
                   id: `human-input-${Date.now()}`,
                   role: 'agent',
                   content: question,
-                  timestamp: Date.now()
+                  timestamp: Date.now(),
+                  options: options,
+                  approvalRequest: approvalRequest
                 }];
               });
               setStatus('waiting_input');

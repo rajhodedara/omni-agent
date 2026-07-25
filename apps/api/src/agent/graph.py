@@ -72,8 +72,8 @@ async def parse_input(state: AgentState) -> dict[str, Any]:
 
 
 async def load_memory(state: AgentState) -> dict[str, Any]:
-    """Load user preferences and relevant episodic memory."""
-    logger.info("Node: load_memory — Retrieving user preferences")
+    """Load user preferences and relevant episodic memory from Supabase."""
+    logger.info("Node: load_memory — Retrieving user preferences and memory facts")
 
     import httpx
     from src.config import get_settings
@@ -346,6 +346,13 @@ async def execute_step(state: AgentState) -> dict[str, Any]:
         question = raw_input.get("question", "") if isinstance(raw_input, dict) else ""
         options = raw_input.get("options") if isinstance(raw_input, dict) else None
 
+        if tool_name == "send_email":
+            recipient = raw_input.get("recipient", "Unknown")
+            subject = raw_input.get("subject", "No Subject")
+            body = raw_input.get("body", "")
+            question = f"Email Draft Preview:\nTo: {recipient}\nSubject: {subject}\n\n{body}"
+            options = ["Approve & Send", "Reject"]
+
         # Fall back to step description if no explicit question was provided
         if not question:
             question = f"I need your input to proceed: {current_step['description']}"
@@ -433,7 +440,11 @@ async def execute_step(state: AgentState) -> dict[str, Any]:
             response_text = last_msg.get("content", "User provided input.") if last_msg.get("role") == "user" else "User provided input."
             tool_output = {"response": response_text}
         else:
-            tool_output = await tool.execute(**validated_input)
+            # Only pass _execution_id to tools that accept it (e.g. send_email)
+            if tool.name == "send_email":
+                tool_output = await tool.execute(**validated_input, _execution_id=state.get("execution_id"))
+            else:
+                tool_output = await tool.execute(**validated_input)
 
         result = StepResult(
             step_number=current_step["step_number"],
@@ -601,11 +612,14 @@ async def wait_for_human(state: AgentState) -> dict[str, Any]:
     elif isinstance(user_response, str):
         response_text = user_response
 
+    # Check if the user approved
+    is_approved = "reject" not in response_text.lower() and "no" not in response_text.lower()
+
     return {
-        "status": "evaluating",
+        "status": "evaluating" if is_approved else "replanning",
         "requires_approval": False,
         "approval_request": None,
-        "approval_granted": True,
+        "approval_granted": is_approved,
         "messages": [{"role": "user", "content": response_text}],
     }
 
@@ -652,8 +666,87 @@ async def save_memory(state: AgentState) -> dict[str, Any]:
     """Save learned facts and preferences to long-term memory."""
     logger.info("Node: save_memory — Persisting learned information")
 
-    # TODO: Integrate Mem0 to extract and store new user facts
-    # from the execution results and summary
+    # Auto-save email contacts from successful send_email steps
+    try:
+        import httpx
+        import uuid as _uuid
+        from src.config import get_settings
+        settings = get_settings()
+
+        for result in state.get("step_results", []):
+            if (
+                result.get("tool_name") == "send_email"
+                and result.get("status") == "completed"
+                and isinstance(result.get("tool_input"), dict)
+            ):
+                recipient = result["tool_input"].get("recipient", "")
+                if not recipient or "@" not in recipient:
+                    continue
+
+                # Derive a friendly name from the original prompt
+                prompt_lower = state.get("original_prompt", "").lower()
+                contact_name = recipient.split("@")[0]  # fallback
+                for marker in ["send email to ", "send an email to ", "email to ", "mail to ", "send to ", "sent email to ", "sent an email to ", "sent mail to "]:
+                    if marker in prompt_lower:
+                        after = prompt_lower.split(marker, 1)[1]
+                        # Take everything before common delimiters
+                        for delim in [" about ", " regarding ", " with email ", " with mail ", " with ", " saying ", " that ", " on "]:
+                            if delim in after:
+                                after = after.split(delim, 1)[0]
+                                break
+                        name_candidate = after.strip().rstrip(".")
+                        # If the extracted text IS the email address, try to
+                        # extract a name that appears before the email
+                        if "@" in name_candidate:
+                            # Pattern: "krish at krish@..." or "krish krish@..."
+                            parts = name_candidate.split()
+                            name_parts = [p for p in parts if "@" not in p and p != "at"]
+                            if name_parts:
+                                contact_name = " ".join(name_parts)
+                            # else fallback stays as recipient.split("@")[0]
+                        else:
+                            contact_name = name_candidate
+                        break
+
+                fact_text = f"{contact_name}'s email address is {recipient}"
+
+                async with httpx.AsyncClient() as client:
+                    headers = {
+                        "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+                        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+                        "Content-Type": "application/json",
+                    }
+                    # Check if this contact is already saved
+                    check_resp = await client.get(
+                        f"{settings.SUPABASE_URL}/rest/v1/memory_facts"
+                        f"?user_id=eq.00000000-0000-0000-0000-000000000000"
+                        f"&category=eq.email_contact"
+                        f"&fact=ilike.*{recipient}*"
+                        f"&select=id",
+                        headers=headers,
+                    )
+                    if check_resp.status_code == 200 and check_resp.json():
+                        logger.info(f"Email contact already saved: {recipient}")
+                        continue
+
+                    payload = {
+                        "id": str(_uuid.uuid4()),
+                        "user_id": "00000000-0000-0000-0000-000000000000",
+                        "fact": fact_text,
+                        "category": "email_contact",
+                        "confidence": 1.0,
+                    }
+                    resp = await client.post(
+                        f"{settings.SUPABASE_URL}/rest/v1/memory_facts",
+                        headers=headers,
+                        json=payload,
+                    )
+                    if resp.status_code in (200, 201):
+                        logger.info(f"Saved email contact: {fact_text}")
+                    else:
+                        logger.warning(f"Failed to save email contact: {resp.text}")
+    except Exception as e:
+        logger.warning(f"Failed to save memory facts: {e}")
 
     return {"status": "completed"}
 

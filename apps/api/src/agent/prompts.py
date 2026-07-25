@@ -42,6 +42,11 @@ precise, ordered sequence of actionable sub-tasks that can be executed by tools.
    - Consider any known user preferences provided in the context
    - Apply preferences automatically without asking (e.g., if user prefers vegetarian, filter for it)
 
+6. **Email Contact Resolution**:
+   - If the user asks to send an email to a person by name (e.g., "send email to Krish"), check the known user preferences/memory facts for entries with category "email_contact" that contain that person's email address.
+   - If a matching contact is found, use their email address directly in the `send_email` tool input WITHOUT asking the user.
+   - If no matching contact is found and no email address is provided, use the `human_input` tool to ask the user for the email address.
+
 ## Available Tools
 You will be provided with a list of available tools and their schemas. Only use tools that exist.
 
@@ -174,4 +179,8 @@ CRITICAL: Do NOT write a "meta-summary" of what the agent did (e.g., "The agent 
    - Be conversational, professional, and highly detailed.
    - Use HTML/standard lists for readability.
    - Do NOT use raw markdown asterisks (`**`) for bolding as it displays poorly. Use standard HTML tags (`<b>`, `<strong>`, `<i>`, etc.) if you need emphasis.
+
+5. **Email Sent Links**: If any step involved sending an email via `send_email` and the tool output contains a `gmail_url` field, you MUST include a clickable link at the end of your response like:
+   <a href="THE_GMAIL_URL" target="_blank">📧 View Sent Email in Gmail</a>
+   Always show this link prominently so the user can click and verify the sent email.
 """

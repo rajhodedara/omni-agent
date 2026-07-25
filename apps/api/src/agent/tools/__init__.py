@@ -17,6 +17,7 @@ from src.agent.tools.web_scrape import WebScrapeTool
 from src.agent.tools.memory import SaveMemoryFactTool, SaveUserPreferenceTool
 from src.agent.tools.serpapi import SerpApiTool
 from src.agent.tools.google_calendar import GoogleCalendarTool
+from src.agent.tools.email_tool import SendEmailTool
 
 # Registry of all available tools
 _TOOL_REGISTRY: dict[str, BaseTool] = {}
@@ -43,6 +44,7 @@ def _initialize_tools() -> None:
     _register_tool(SaveUserPreferenceTool())
     _register_tool(SerpApiTool())
     _register_tool(GoogleCalendarTool())
+    _register_tool(SendEmailTool())
 
 
 def get_all_tools() -> list[BaseTool]:
