@@ -15,44 +15,7 @@ def get_llm_router() -> Router:
     
     all_possible_models = []
     
-    # 1. Gemini (Primary because GitHub hit daily quota)
-    if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip():
-        all_possible_models.append({
-            "model_name": "gemini-flash",
-            "litellm_params": {
-                "model": "gemini/gemini-flash-latest",
-                "api_key": settings.GEMINI_API_KEY.strip(),
-            },
-            "tpm": 15 * 1000,
-            "rpm": 15,
-        })
-        
-    # 2. GitHub Models (GPT-4o-mini, 150 RPD free)
-    if settings.GITHUB_TOKEN and settings.GITHUB_TOKEN.strip():
-        all_possible_models.append({
-            "model_name": "github-gpt4o-mini",
-            "litellm_params": {
-                "model": "openai/gpt-4o-mini",
-                "api_base": "https://models.inference.ai.azure.com",
-                "api_key": settings.GITHUB_TOKEN.strip(),
-            },
-            "rpm": 15,
-        })
-        
-    # 3. Cerebras (1M tokens/day)
-    if settings.CEREBRAS_API_KEY and settings.CEREBRAS_API_KEY.strip():
-        all_possible_models.append({
-            "model_name": "cerebras-llama3-70b",
-            "litellm_params": {
-                "model": "openai/llama3.1-70b",
-                "api_base": "https://api.cerebras.ai/v1",
-                "api_key": settings.CEREBRAS_API_KEY.strip(),
-            },
-            "tpm": 30 * 1000,
-            "rpm": 30,
-        })
-
-    # 4. Groq (100k tokens/day - currently rate limited)
+    # 1. Groq (Primary for ultrafast low-latency LLaMA 3.3 70B inference)
     if settings.GROQ_API_KEY and settings.GROQ_API_KEY.strip():
         all_possible_models.append({
             "model_name": "groq-llama3-70b",
@@ -67,6 +30,43 @@ def get_llm_router() -> Router:
             "litellm_params": {
                 "model": "groq/qwen/qwen3.6-27b",
                 "api_key": settings.GROQ_API_KEY.strip(),
+            },
+            "rpm": 15,
+        })
+        
+    # 2. Cerebras (Secondary fast LPU provider, 1M tokens/day)
+    if settings.CEREBRAS_API_KEY and settings.CEREBRAS_API_KEY.strip():
+        all_possible_models.append({
+            "model_name": "cerebras-llama3-70b",
+            "litellm_params": {
+                "model": "openai/llama3.1-70b",
+                "api_base": "https://api.cerebras.ai/v1",
+                "api_key": settings.CEREBRAS_API_KEY.strip(),
+            },
+            "tpm": 30 * 1000,
+            "rpm": 30,
+        })
+        
+    # 3. Gemini (Reliable fallback with large context)
+    if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip():
+        all_possible_models.append({
+            "model_name": "gemini-flash",
+            "litellm_params": {
+                "model": "gemini/gemini-flash-latest",
+                "api_key": settings.GEMINI_API_KEY.strip(),
+            },
+            "tpm": 15 * 1000,
+            "rpm": 15,
+        })
+        
+    # 4. GitHub Models (GPT-4o-mini, 150 RPD free)
+    if settings.GITHUB_TOKEN and settings.GITHUB_TOKEN.strip():
+        all_possible_models.append({
+            "model_name": "github-gpt4o-mini",
+            "litellm_params": {
+                "model": "openai/gpt-4o-mini",
+                "api_base": "https://models.inference.ai.azure.com",
+                "api_key": settings.GITHUB_TOKEN.strip(),
             },
             "rpm": 15,
         })
@@ -110,10 +110,11 @@ def get_llm_router() -> Router:
             vision_fb = [m for m in ["gemini-flash", "github-gpt4o-mini", "openrouter-free"] if m in available_model_names and m != name]
             if vision_fb:
                 fallbacks.append({name: vision_fb})
-            elif i < len(available_model_names) - 1:
-                fallbacks.append({name: available_model_names[i+1:]})
-        elif i < len(available_model_names) - 1:
-            fallbacks.append({name: available_model_names[i+1:]})
+        else:
+            # Exclude vision-specific model from standard text model fallbacks
+            text_fallbacks = [m for m in available_model_names[i+1:] if m != "groq-qwen-vision"]
+            if text_fallbacks:
+                fallbacks.append({name: text_fallbacks})
 
     _router = Router(
         model_list=all_possible_models,

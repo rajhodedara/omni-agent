@@ -49,7 +49,7 @@ This document provides a comprehensive deep-dive into the architectural context,
 | **Frontend** | **Next.js 15 (React 19)** + **Shadcn/ui** + **xyflow** | Delivers responsive chat interface and renders real-time execution node graphs as the agent reasons and executes tool calls. |
 | **Backend API** | **FastAPI** (Python 3.12) + **Pydantic** | Asynchronous high-performance web API providing REST endpoints and Server-Sent Events (SSE) streaming. |
 | **Agent Core** | **LangGraph** + **PydanticAI** | Manages cyclic agent execution graphs, validation of tool outputs, and conditional branching. |
-| **LLM Gateway** | **LiteLLM** | Implements robust failover routing across 6 free-tier provider cascades (Cerebras → Gemini → GitHub Models → Groq → OpenRouter). |
+| **LLM Gateway** | **LiteLLM** | Implements robust failover routing across 6 free-tier provider cascades (Groq → Cerebras → Gemini → GitHub Models → OpenRouter). |
 | **Orchestration** | **Temporal.io** | Guarantees durable execution; prevents loss of state during network disconnects, server restarts, or long human-in-the-loop pauses. |
 | **Storage & Memory**| **Supabase (PostgreSQL + pgvector)** + **Mem0** | Handles relational database state, user sessions, and semantic embeddings for short/long-term context retention. |
 
@@ -72,7 +72,7 @@ When a user submits a goal in the UI (e.g., *"Find me a good sushi place in down
    - A dedicated Temporal Worker process (**`apps/api/src/workflows/worker.py`**) executes the core **LangGraph state machine** defined in **`apps/api/src/agent/graph.py`**.
    - **State Initialization**: Initializes agent memory and variables using **`apps/api/src/agent/state.py`**.
    - **Prompt Framing**: Injects operational instructions and user context from **`apps/api/src/agent/prompts.py`**.
-   - **LLM Selection**: Queries **`apps/api/src/agent/llm_router.py`**, automatically attempting fast providers (like Cerebras or Gemini) with automatic fallback.
+   - **LLM Selection**: Queries **`apps/api/src/agent/llm_router.py`**, automatically attempting ultrafast low-latency providers (like Groq or Cerebras) with automatic fallback.
 
 4. **Tool Orchestration & Human Approval**:
    - As the LangGraph agent determines it needs data, it invokes dedicated tool adapters in **`apps/api/src/agent/tools/`** (e.g., `yelp.py` for restaurant lookup and `weather.py` for evening forecast).

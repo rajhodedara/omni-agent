@@ -88,10 +88,10 @@ All LLM providers and tool APIs use **free tiers**. See [.env.example](.env.exam
 
 | Provider | Purpose | Signup |
 |---|---|---|
-| Cerebras | Primary LLM (1M tokens/day) | [inference.cerebras.ai](https://inference.cerebras.ai) |
-| Google Gemini | Secondary LLM | [aistudio.google.com](https://aistudio.google.com) |
-| GitHub Models | Tertiary LLM (GPT-4o-mini) | Any GitHub account |
-| Groq | Fallback LLM | [console.groq.com](https://console.groq.com) |
+| Groq | Primary LLM (Ultrafast LLaMA 3.3 70B) | [console.groq.com](https://console.groq.com) |
+| Cerebras | Secondary LLM (1M tokens/day) | [inference.cerebras.ai](https://inference.cerebras.ai) |
+| Google Gemini | Tertiary LLM | [aistudio.google.com](https://aistudio.google.com) |
+| GitHub Models | Fallback LLM (GPT-4o-mini) | Any GitHub account |
 | OpenRouter | Fallback LLM pool | [openrouter.ai](https://openrouter.ai) |
 | Supabase | Database + Auth | [supabase.com](https://supabase.com) |
 | Yelp Fusion | Restaurant search | [fusion.yelp.com](https://fusion.yelp.com) |
