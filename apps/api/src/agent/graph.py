@@ -273,16 +273,34 @@ async def execute_step(state: AgentState) -> dict[str, Any]:
     # Check if this tool requires human approval
     tool = get_tool_by_name(tool_name)
     if tool and tool.requires_approval and not state.get("approval_granted"):
+        # Extract the question and options from tool_input when available
+        raw_input = current_step.get("tool_input", {}) or {}
+        if isinstance(raw_input, str):
+            try:
+                raw_input = json.loads(raw_input)
+            except (json.JSONDecodeError, ValueError):
+                raw_input = {}
+
+        question = raw_input.get("question", "") if isinstance(raw_input, dict) else ""
+        options = raw_input.get("options") if isinstance(raw_input, dict) else None
+
+        # Fall back to step description if no explicit question was provided
+        if not question:
+            question = f"I need your input to proceed: {current_step['description']}"
+
         return {
             "status": "waiting_approval",
             "requires_approval": True,
             "approval_request": {
                 "action": current_step["description"],
                 "tool_name": tool_name,
-                "tool_input": current_step.get("tool_input", {}),
-                "reason": f"This action requires your approval: {current_step['description']}",
-                "options": ["approve", "reject", "edit"],
+                "tool_input": raw_input,
+                "question": question,
+                "reason": question,
+                "options": options or ["approve", "reject", "edit"],
             },
+            # Append the question as an assistant message so chat UI can display it
+            "messages": [{"role": "assistant", "content": question}],
         }
 
     # Execute the tool
@@ -487,22 +505,37 @@ async def replan(state: AgentState) -> dict[str, Any]:
 
 async def wait_for_human(state: AgentState) -> dict[str, Any]:
     """
-    Pause execution and wait for human approval.
+    Pause execution and wait for human input/approval.
 
-    In the Temporal workflow, this node triggers an interrupt signal.
-    The workflow pauses until a signal is received (approve/reject/edit).
+    Uses LangGraph's interrupt() to pause the graph. When the frontend
+    sends Command(resume={"response": "..."}), interrupt() returns the
+    user's response and execution continues.
     """
-    logger.info("Node: wait_for_human — Awaiting human approval")
+    from langgraph.types import interrupt
 
-    # In production, this will be handled by Temporal signals.
-    # For now, auto-approve for testing purposes.
-    # TODO: Integrate with Temporal interrupt/signal mechanism
+    logger.info("Node: wait_for_human — Pausing for human input")
+
+    approval_request = state.get("approval_request", {})
+
+    # interrupt() pauses the graph here. When resumed via
+    # Command(resume={"response": "user's answer"}), it returns that value.
+    user_response = interrupt(approval_request)
+
+    logger.info(f"Node: wait_for_human — Received human response: {user_response}")
+
+    # Extract the user's text response
+    response_text = ""
+    if isinstance(user_response, dict):
+        response_text = user_response.get("response", str(user_response))
+    elif isinstance(user_response, str):
+        response_text = user_response
 
     return {
         "status": "evaluating",
         "requires_approval": False,
         "approval_request": None,
         "approval_granted": True,
+        "messages": [{"role": "user", "content": response_text}],
     }
 
 
@@ -647,7 +680,6 @@ def build_agent_graph() -> StateGraph:
     memory = MemorySaver()
     return graph.compile(
         checkpointer=memory,
-        interrupt_before=["wait_for_human"]
     )
 
 

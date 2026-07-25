@@ -10,8 +10,80 @@ import ExecutionGraph from '../../components/graph/ExecutionGraph';
 
 export default function DashboardPage() {
   const [messages, setMessages] = useState<Message[]>([]);
-  const { status, setStatus, setExecutionSteps } = useExecutionStore();
+  const { status, setStatus, setExecutionSteps, threadId, setThreadId } = useExecutionStore();
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Shared helper to process SSE stream from either /chat or /chat/respond
+  const processSSEStream = async (response: Response) => {
+    if (!response.body) throw new Error('No response body');
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const dataStr = line.replace('data: ', '').trim();
+          if (!dataStr) continue;
+
+          try {
+            const event = JSON.parse(dataStr);
+
+            if (event.type === 'node_update' && event.data) {
+              if (event.data.plan) {
+                const currentSteps = useExecutionStore.getState().executionSteps;
+                if (event.data.plan.length >= currentSteps.length) {
+                  setExecutionSteps(event.data.plan);
+                }
+              }
+              if (event.data.final_summary) {
+                setMessages(prev => {
+                  const newMsgs = prev.filter(m => m.id !== 'typing');
+                  return [...newMsgs, {
+                    id: Date.now().toString(),
+                    role: 'agent',
+                    content: event.data.final_summary,
+                    timestamp: Date.now()
+                  }];
+                });
+              }
+            }
+
+            // Human input requested — show prompt in chat and re-enable input
+            if (event.type === 'human_input') {
+              const question = event.data?.question || 'I need more information to proceed.';
+              setThreadId(event.thread_id || null);
+              setMessages(prev => {
+                const newMsgs = prev.filter(m => m.id !== 'typing');
+                return [...newMsgs, {
+                  id: `human-input-${Date.now()}`,
+                  role: 'agent',
+                  content: question,
+                  timestamp: Date.now()
+                }];
+              });
+              setStatus('waiting_input');
+            }
+
+            if (event.type === 'complete') {
+              setStatus('idle');
+              setThreadId(null);
+              setMessages(prev => prev.filter(m => m.id !== 'typing'));
+            }
+          } catch (err) {
+            console.error('Failed to parse SSE JSON', err);
+          }
+        }
+      }
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -29,7 +101,7 @@ export default function DashboardPage() {
       content,
       timestamp: Date.now()
     };
-    
+
     // Add agent typing indicator
     const agentTypingMsg: Message = {
       id: 'typing',
@@ -38,83 +110,44 @@ export default function DashboardPage() {
       timestamp: Date.now() + 1,
       isTyping: true
     };
-    
+
     setMessages(prev => [...prev, userMsg, agentTypingMsg]);
-    setStatus('running');
-    setExecutionSteps([]); // Reset graph for new run
-    
+
     try {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
       abortControllerRef.current = new AbortController();
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/chat` : 'http://127.0.0.1:8000/api/chat';
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: content }),
-        signal: abortControllerRef.current.signal
-      });
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+      const currentStatus = useExecutionStore.getState().status;
+      const currentThreadId = useExecutionStore.getState().threadId;
 
-      if (!response.body) throw new Error("No response body");
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+      let response: Response;
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        
-        // Keep the last partial chunk in the buffer
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataStr = line.replace('data: ', '').trim();
-            if (!dataStr) continue;
-            
-            try {
-              const event = JSON.parse(dataStr);
-              
-              if (event.type === 'node_update' && event.data) {
-                // If it's a plan update
-                if (event.data.plan) {
-                  const currentSteps = useExecutionStore.getState().executionSteps;
-                  // Only update if the incoming plan is at least as long as current plan to prevent backwards state corruption
-                  if (event.data.plan.length >= currentSteps.length) {
-                    setExecutionSteps(event.data.plan);
-                  }
-                }
-                
-                // If it's the final summary
-                if (event.data.final_summary) {
-                  setMessages(prev => {
-                    const newMsgs = prev.filter(m => m.id !== 'typing');
-                    return [...newMsgs, {
-                      id: Date.now().toString(),
-                      role: 'agent',
-                      content: event.data.final_summary,
-                      timestamp: Date.now()
-                    }];
-                  });
-                }
-              }
-              
-              if (event.type === 'complete') {
-                setStatus('idle');
-                // Remove typing indicator if summary wasn't hit
-                setMessages(prev => prev.filter(m => m.id !== 'typing'));
-              }
-            } catch (err) {
-              console.error('Failed to parse SSE JSON', err);
-            }
-          }
-        }
+      if (currentStatus === 'waiting_input' && currentThreadId) {
+        // Resume a paused execution with the user's response
+        setStatus('running');
+        response = await fetch(`${baseUrl}/api/chat/respond`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ thread_id: currentThreadId, response: content }),
+          signal: abortControllerRef.current.signal
+        });
+      } else {
+        // Start a new execution
+        setStatus('running');
+        setExecutionSteps([]);
+        response = await fetch(`${baseUrl}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: content }),
+          signal: abortControllerRef.current.signal
+        });
       }
+
+      await processSSEStream(response);
+
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.log('Fetch aborted');
@@ -248,10 +281,10 @@ export default function DashboardPage() {
                   <span className="text-[12px]">🧠</span> Recalled: Prefers dark mode
                 </span>
               </div>
-              <ChatInput onSend={handleSend} disabled={status === 'running'} />
+              <ChatInput onSend={handleSend} disabled={status === 'running'} isWaitingInput={status === 'waiting_input'} />
               <div className="text-center mt-1">
                 <span className="text-[10px] text-on-surface-variant/50 font-label-caps uppercase tracking-widest">
-                  {status === 'running' ? 'Agent Processing...' : 'Autonomous Agent Active'}
+                  {status === 'running' ? 'Agent Processing...' : status === 'waiting_input' ? 'Awaiting Your Response...' : 'Autonomous Agent Active'}
                 </span>
               </div>
             </div>

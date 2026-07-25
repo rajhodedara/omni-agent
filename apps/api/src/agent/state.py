@@ -95,6 +95,7 @@ class AgentState(TypedDict, total=False):
     ]
     error: str | None
     requires_approval: bool
+    approval_granted: bool
     approval_request: ApprovalRequest | None
 
     # ── Output ─────────────────────────────────────────────────────

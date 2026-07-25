@@ -5,9 +5,10 @@ import React, { useState, useRef, useEffect } from 'react';
 interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
+  isWaitingInput?: boolean;
 }
 
-export default function ChatInput({ onSend, disabled }: ChatInputProps) {
+export default function ChatInput({ onSend, disabled, isWaitingInput }: ChatInputProps) {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -17,6 +18,13 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
   }, [input]);
+
+  // Auto-focus when waiting for input
+  useEffect(() => {
+    if (isWaitingInput && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [isWaitingInput]);
 
   const handleSend = () => {
     if (input.trim() && !disabled) {
@@ -35,8 +43,12 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
     }
   };
 
+  const placeholder = isWaitingInput
+    ? 'Type your response...'
+    : 'Command PersonalAI...';
+
   return (
-    <div className="relative flex items-center glass-card rounded-xl glass-input p-2 transition-all duration-300 w-full">
+    <div className={`relative flex items-center glass-card rounded-xl glass-input p-2 transition-all duration-300 w-full ${isWaitingInput ? 'ring-1 ring-primary/50 shadow-[0_0_15px_rgba(208,188,255,0.2)]' : ''}`}>
       <button className="p-2 text-on-surface-variant hover:text-primary transition-colors">
         <span className="material-symbols-outlined">add_circle</span>
       </button>
@@ -45,7 +57,7 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Command PersonalAI..."
+        placeholder={placeholder}
         disabled={disabled}
         rows={1}
         className="flex-1 bg-transparent border-none text-on-surface focus:ring-0 placeholder-on-surface-variant/50 min-h-[44px] resize-none outline-none py-3 scroll-hide"
