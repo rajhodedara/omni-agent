@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, AsyncMock
 from src.main import app
+from src.dependencies import get_current_user
 
 client = TestClient(app)
 
@@ -68,17 +69,21 @@ def test_executions_endpoints():
     }
 
     with patch("src.api.executions.get_execution_service", return_value=mock_service_instance):
-        res = client.post("/api/executions/", json={"prompt": "Test task"})
-        assert res.status_code == 201
-        data = res.json()
-        assert data["execution_id"] == "exec-123"
+        app.dependency_overrides[get_current_user] = lambda: {"id": "test-user-id"}
+        try:
+            res = client.post("/api/executions/", json={"prompt": "Test task"})
+            assert res.status_code == 201
+            data = res.json()
+            assert data["execution_id"] == "exec-123"
 
-        res_status = client.get("/api/executions/exec-123")
-        assert res_status.status_code == 200
-        assert res_status.json()["status"] == "RUNNING"
+            res_status = client.get("/api/executions/exec-123")
+            assert res_status.status_code == 200
+            assert res_status.json()["status"] == "RUNNING"
+        finally:
+            app.dependency_overrides.clear()
 
 def test_chat_sse_endpoint():
-    async def mock_astream(state):
+    async def mock_astream(state, *args, **kwargs):
         yield {"parse_input": {"status": "loading_memory"}}
         yield {"plan_task": {"status": "executing", "plan": []}}
     

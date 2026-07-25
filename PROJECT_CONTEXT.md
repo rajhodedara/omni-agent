@@ -8,7 +8,7 @@ This document provides a comprehensive deep-dive into the architectural context,
 
 **PersonalAI** is an autonomous, goal-oriented personal assistant agent capable of turning high-level natural language instructions into concrete, multi-step execution plans. Unlike traditional chat completion models, PersonalAI operates as a **durable, tool-calling state machine** that:
 - **Decomposes Complex Tasks**: Breaks amorphous user intentions into structured, step-by-step action graphs.
-- **Orchestrates Tools**: Interacts natively with live external APIs (Web Search, Yelp, Amadeus Flights/Hotels, Weather, News, Maps, and targeted Web Scraping).
+- **Orchestrates Tools**: Interacts natively with live external APIs (Web Search, Yelp, SerpApi Flights/Hotels, Weather, News, Maps, and targeted Web Scraping).
 - **Self-Corrects & Adapts**: Evaluates failed tool calls or parsing errors autonomously and attempts recovery routes.
 - **Enforces Safety & Control**: Pauses execution dynamically to request human approval before committing high-risk actions (e.g., booking, external mutations).
 - **Maintains Dual Memory**: Leverages conversational semantic memory (Mem0) alongside episodic vector storage (Supabase PostgreSQL + `pgvector`) for long-term personalized context.
@@ -40,7 +40,7 @@ This document provides a comprehensive deep-dive into the architectural context,
                       │               │
          ┌────────────▼───────┐ ┌─────▼──────────────┐
          │ LiteLLM Router     │ │ External API Tools │
-         │ (6-Tier LLM Cascade)│ │ (Yelp, Amadeus, etc)│
+         │ (6-Tier LLM Cascade)│ │ (Yelp, SerpApi, etc)│
          └────────────────────┘ └────────────────────┘
 ```
 

@@ -95,7 +95,7 @@ All LLM providers and tool APIs use **free tiers**. See [.env.example](.env.exam
 | OpenRouter | Fallback LLM pool | [openrouter.ai](https://openrouter.ai) |
 | Supabase | Database + Auth | [supabase.com](https://supabase.com) |
 | Yelp Fusion | Restaurant search | [fusion.yelp.com](https://fusion.yelp.com) |
-| Amadeus | Flight/hotel search | [developers.amadeus.com](https://developers.amadeus.com) |
+| SerpApi | Flight/hotel search | [serpapi.com](https://serpapi.com) |
 
 ## 📜 License
 

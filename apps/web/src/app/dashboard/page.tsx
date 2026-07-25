@@ -176,7 +176,9 @@ export default function DashboardPage() {
         return [...newMsgs, {
           id: Date.now().toString(),
           role: 'agent',
-          content: 'Sorry, I encountered an error communicating with the server.',
+          content: error.message && error.message.includes('Server returned') ? 
+                   `Connection Error: ${error.message}. Please ensure the backend is running and your API keys are correctly configured in the .env file.` : 
+                   'Sorry, I encountered an error communicating with the server. Please check your network or backend status.',
           timestamp: Date.now()
         }];
       });

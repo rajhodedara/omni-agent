@@ -27,7 +27,7 @@ export default function RootLayout({
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
-      <body className={`${inter.variable} ${jetbrainsMono.variable} ${outfit.variable} bg-background text-on-background font-body-md`}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} ${outfit.variable} bg-background text-on-background font-body-md`} suppressHydrationWarning>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

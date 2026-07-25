@@ -19,6 +19,9 @@ def get_current_user(request: Request) -> dict:
     """Dependency to get the authenticated user from the request state."""
     user = getattr(request.state, "user", None)
     if not user:
+        settings = get_settings()
+        if settings.ENVIRONMENT == "development":
+            return {"id": "dev-user-id", "email": "dev@local", "role": "authenticated"}
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated or invalid token",
