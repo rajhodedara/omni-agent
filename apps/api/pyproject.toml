@@ -1,0 +1,34 @@
+[project]
+name = "personalai-api"
+version = "0.1.0"
+description = "FastAPI backend for PersonalAI autonomous agent"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.115.0",
+    "uvicorn[standard]",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg",
+    "alembic",
+    "pydantic>=2.0",
+    "pydantic-settings",
+    "python-jose[cryptography]",
+    "httpx",
+    "redis",
+    "litellm",
+    "langgraph",
+    "langchain-core",
+    "temporalio",
+    "mem0ai",
+    "duckduckgo-search",
+    "crawl4ai",
+    "feedparser",
+    "geopy",
+    "trafilatura",
+    "langfuse",
+    "python-multipart",
+    "pgvector"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
