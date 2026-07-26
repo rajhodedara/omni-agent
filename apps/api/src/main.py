@@ -32,17 +32,53 @@ app = FastAPI(
 app.add_middleware(SupabaseAuthMiddleware)
 app.add_middleware(RateLimitingMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
-class CustomCORSMiddleware(CORSMiddleware):
-    def is_allowed_origin(self, origin: str) -> bool:
-        return True
+class ASGICORSMiddleware:
+    def __init__(self, app):
+        self.app = app
 
-app.add_middleware(
-    CustomCORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope.get("headers", []))
+        origin_bytes = headers.get(b"origin")
+        origin = origin_bytes.decode("utf-8") if origin_bytes else "*"
+
+        if scope["method"] == "OPTIONS":
+            await send({
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [
+                    (b"access-control-allow-origin", origin.encode("utf-8")),
+                    (b"access-control-allow-credentials", b"true"),
+                    (b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS, PATCH"),
+                    (b"access-control-allow-headers", b"content-type, authorization, accept, origin, x-requested-with"),
+                    (b"access-control-max-age", b"86400"),
+                ]
+            })
+            await send({
+                "type": "http.response.body",
+                "body": b"",
+            })
+            return
+
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                res_headers = message.get("headers", [])
+                res_headers = [h for h in res_headers if not h[0].lower().startswith(b"access-control-")]
+                res_headers.extend([
+                    (b"access-control-allow-origin", origin.encode("utf-8")),
+                    (b"access-control-allow-credentials", b"true"),
+                    (b"access-control-allow-methods", b"GET, POST, PUT, DELETE, OPTIONS, PATCH"),
+                    (b"access-control-allow-headers", b"content-type, authorization, accept, origin, x-requested-with"),
+                ])
+                message["headers"] = res_headers
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
+app.add_middleware(ASGICORSMiddleware)
 
 app.include_router(api_router, prefix="/api")
 
