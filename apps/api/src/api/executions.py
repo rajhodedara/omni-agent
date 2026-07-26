@@ -52,7 +52,7 @@ class SignalRequest(BaseModel):
 # ─────────────────────────────────────────────────────────────────────
 
 
-@router.post("/", response_model=CreateExecutionResponse, status_code=201)
+@router.post("", response_model=CreateExecutionResponse, status_code=201)
 async def create_execution(request: CreateExecutionRequest, current_user: dict = Depends(get_current_user)):
     """
     Create and start a new agent execution.
@@ -74,7 +74,7 @@ async def create_execution(request: CreateExecutionRequest, current_user: dict =
     return CreateExecutionResponse(**result)
 
 
-@router.get("/")
+@router.get("")
 async def list_executions():
     """List all executions for the current user."""
     settings = get_settings()

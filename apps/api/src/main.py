@@ -82,6 +82,10 @@ app.add_middleware(ASGICORSMiddleware)
 
 app.include_router(api_router, prefix="/api")
 
+@app.get("/", tags=["System"])
+async def root_check():
+    return {"status": "ok", "service": "PersonalAI API"}
+
 @app.get("/health", tags=["System"])
 async def health_check():
     return {"status": "ok", "environment": settings.ENVIRONMENT}
