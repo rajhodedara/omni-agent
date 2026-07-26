@@ -16,7 +16,10 @@ class SendEmailTool(BaseTool):
     name = "send_email"
     description = (
         "Sends an email to a recipient using Gmail API. "
-        "IMPORTANT: This tool requires explicit human approval before running."
+        "IMPORTANT: ONLY use this tool when the user EXPLICITLY instructs you to send an email (e.g., 'send an email to...', 'email me this'). "
+        "NEVER automatically email travel plans, itineraries, flights, or hotels without explicit user instruction. "
+        "For flights and hotels, instead fetch and display direct booking/search URLs in the final response. "
+        "This tool requires explicit human approval before running."
     )
     input_schema = SendEmailInput
     requires_approval = True

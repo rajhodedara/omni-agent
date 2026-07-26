@@ -19,7 +19,9 @@ class GoogleCalendarInput(BaseModel):
 class GoogleCalendarTool(BaseTool):
     name = "google_calendar"
     description = (
-        "Add one or more events (like an itinerary or study schedule) to the user's primary Google Calendar. "
+        "Add one or more events to the user's primary Google Calendar. "
+        "IMPORTANT: ONLY use this tool when the user EXPLICITLY requests adding dates or events to their calendar (e.g., 'add to my calendar', 'schedule on Google Calendar'). "
+        "Do NOT automatically add travel itineraries, flight dates, or study schedules without an explicit request! "
         "Requires the user to have generated a token.json file first. "
         "This tool automatically prompts the user for approval before inserting the events."
     )

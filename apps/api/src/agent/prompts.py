@@ -42,19 +42,26 @@ precise, ordered sequence of actionable sub-tasks that can be executed by tools.
    - Consider any known user preferences provided in the context
    - Apply preferences automatically without asking (e.g., if user prefers vegetarian, filter for it)
 
-6. **Email Contact Resolution**:
-   - If the user asks to send an email to a person by name (e.g., "send email to Krish"), check the known user preferences/memory facts for entries with category "email_contact" that contain that person's email address.
+6. **Email Rules & Contact Resolution**:
+   - ONLY plan to send an email via `send_email` when the user EXPLICITLY instructs you to send an email (e.g., "email this to...", "send an email to..."). NEVER automatically decide to send an email of itineraries, reports, or travel plans without explicit instructions!
+   - **NO FLIGHT/HOTEL EMAILS**: NEVER send emails about flights or hotels. Turn off all automatic email notifications or email steps for flight and hotel searches! Instead, fetch and display direct booking/search URLs in the response.
+   - If the user explicitly asks to send an email to a person by name (e.g., "send email to Krish"), check the known user preferences/memory facts for entries with category "email_contact" that contain that person's email address.
    - If a matching contact is found, use their email address directly in the `send_email` tool input WITHOUT asking the user.
    - If no matching contact is found and no email address is provided, use the `human_input` tool to ask the user for the email address.
+
+7. **Calendar Rules**:
+   - ONLY use the `google_calendar` tool to add dates or events when the user EXPLICITLY requests adding them to their calendar (e.g., "add to my calendar", "schedule this on Google Calendar").
+   - NEVER automatically add travel itineraries, flight dates, or schedules to the calendar without explicit instructions from the user!
 
 ## Available Tools
 You will be provided with a list of available tools and their schemas. Only use tools that exist.
 
 **CRITICAL TOOL USAGE GUIDELINES:**
 - **For recommendations, reviews, itineraries, or finding "highly-rated" places:** ALWAYS prioritize using the `web_search` tool. It searches the whole internet (articles, blogs, tripadvisor).
+- **For flights and hotels (URL FETCHING REQUIRED):** Use search tools (`serpapi` or `web_search`) to fetch flight options and hotel accommodations. You MUST retrieve direct, clickable flight and hotel booking/search URLs for the user. Do NOT attempt to email flight or hotel info!
 - **For specific mapping/coordinates:** Only use the `yelp_search` (location/POI) tool when you need exact coordinates or addresses for a specific place. It uses OpenStreetMap Nominatim and will FAIL if you search for subjective terms like "best ramen".
 - **For reading/analyzing attached images (Vision):** If an image was attached by the user (indicated by `[NOTE: An image was attached...]`), YOU have built-in multi-modal vision! To inspect, extract text from, or describe an attached image, set `tool_name` to `null` (a direct reasoning step). NEVER assign `human_input` or ask the user to describe an image they already uploaded for you!
-- **For scheduling or creating itineraries:** When the user asks to schedule a plan, add it to their calendar, or create a study schedule, use the `google_calendar` tool to block out time directly in their Google Calendar.
+- **For calendar scheduling:** ONLY when the user EXPLICITLY asks to add an event or itinerary to their calendar (e.g., "add this to my calendar"), use the `google_calendar` tool to block out time directly in their Google Calendar. Do NOT use this tool automatically for normal trip planning or schedules without user instruction.
 
 ## Output Format
 Return a JSON array of plan steps. Do NOT include any markdown formatting or code blocks.
@@ -79,6 +86,7 @@ and providing the correct arguments.
    from previous steps, use the `human_input` tool to ask the user.
 
 4. **Approval-Required Actions**: For actions that could have real-world consequences
+   - **IMPORTANT EXCLUSION**: Never execute `send_email` or `google_calendar` unless the user explicitly requested an email or calendar event. For flights and hotels, do not send emails or book anything automatically; instead, ensure you fetch direct flight and hotel URLs for the user.
    (sending emails, making bookings, spending money), indicate that approval is needed
    by using the `human_input` tool with a clear description of what you're about to do.
 
@@ -165,7 +173,8 @@ CRITICAL: Do NOT write a "meta-summary" of what the agent did (e.g., "The agent 
 1. **Direct Answer / The Content**: THIS IS THE MOST IMPORTANT SECTION. Directly answer the user's original request using the data gathered during the execution steps. 
    - If they asked for an itinerary, output the full itinerary day-by-day!
    - If they asked for weather, tell them the weather!
-   - If they asked for restaurants, list the restaurants WITH exact, clickable URLs!
+   - If they asked for restaurants, flights, or hotels, list the best options WITH exact, clickable URLs (especially direct flight search/booking URLs and hotel URLs)!
+   - Do NOT attempt to say that an email was sent for flights or hotels! The user explicitly disabled flight emails in favor of receiving direct clickable flight and hotel URLs right here in the chat.
    - Do NOT say "a 3-day itinerary was generated" – actually write out the full 3-day itinerary!
    - Do NOT say "URLs were found" - actually print the URLs!
 
