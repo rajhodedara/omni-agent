@@ -45,6 +45,7 @@ class WebSearchTool(BaseTool):
                             "Authorization": f"Bearer {api_key}",
                         },
                         json={
+                            "api_key": api_key,
                             "query": query,
                             "max_results": max_results,
                             "include_answer": True,
