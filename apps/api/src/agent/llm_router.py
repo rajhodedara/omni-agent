@@ -23,6 +23,7 @@ def get_llm_router() -> Router:
                 "model": "groq/llama-3.3-70b-versatile",
                 "api_key": settings.GROQ_API_KEY.strip(),
             },
+            "tpm": 6000,
             "rpm": 30,
         })
         all_possible_models.append({
@@ -31,15 +32,26 @@ def get_llm_router() -> Router:
                 "model": "groq/qwen/qwen3.6-27b",
                 "api_key": settings.GROQ_API_KEY.strip(),
             },
+            "tpm": 6000,
             "rpm": 15,
         })
         
-    # 2. Cerebras (Secondary fast LPU provider, 1M tokens/day)
+    # 2. Cerebras (Secondary ultrafast LPU provider, 1M tokens/day)
     if settings.CEREBRAS_API_KEY and settings.CEREBRAS_API_KEY.strip():
         all_possible_models.append({
-            "model_name": "cerebras-llama3-70b",
+            "model_name": "cerebras-gpt-oss-120b",
             "litellm_params": {
-                "model": "openai/llama3.1-70b",
+                "model": "openai/gpt-oss-120b",
+                "api_base": "https://api.cerebras.ai/v1",
+                "api_key": settings.CEREBRAS_API_KEY.strip(),
+            },
+            "tpm": 30 * 1000,
+            "rpm": 30,
+        })
+        all_possible_models.append({
+            "model_name": "cerebras-gemma4-31b",
+            "litellm_params": {
+                "model": "openai/gemma-4-31b",
                 "api_base": "https://api.cerebras.ai/v1",
                 "api_key": settings.CEREBRAS_API_KEY.strip(),
             },
@@ -119,9 +131,9 @@ def get_llm_router() -> Router:
     _router = Router(
         model_list=all_possible_models,
         fallbacks=fallbacks,
-        num_retries=2,
-        timeout=30.0,
-        retry_after=5,
+        num_retries=0,
+        timeout=25.0,
+        retry_after=0,
     )
     return _router
 
