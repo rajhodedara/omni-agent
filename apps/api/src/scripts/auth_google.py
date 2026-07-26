@@ -30,11 +30,11 @@ def main():
             print("Refreshing existing token...")
             creds.refresh(Request())
         else:
-            client_id = os.getenv("GOOGLE_CLIENT_ID")
-            client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+            client_id = os.getenv("CALENDAR_CLIENT_ID")
+            client_secret = os.getenv("CALENDAR_CLIENT_SECRET")
             
             if not client_id or not client_secret:
-                print("ERROR: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in .env")
+                print("ERROR: CALENDAR_CLIENT_ID and CALENDAR_CLIENT_SECRET must be set in .env")
                 sys.exit(1)
                 
             client_config = {

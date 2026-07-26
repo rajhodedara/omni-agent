@@ -13,9 +13,9 @@ class GmailService:
 
     async def get_access_token(self) -> str:
         # Load from environment variables, fallback to settings
-        client_id = os.environ.get("GOOGLE_CLIENT_ID") or getattr(self.settings, "GOOGLE_CLIENT_ID", "")
-        client_secret = os.environ.get("GOOGLE_CLIENT_SECRET") or getattr(self.settings, "GOOGLE_CLIENT_SECRET", "")
-        refresh_token = os.environ.get("GOOGLE_REFRESH_TOKEN") or getattr(self.settings, "GOOGLE_REFRESH_TOKEN", "")
+        client_id = os.environ.get("GMAIL_CLIENT_ID") or getattr(self.settings, "GMAIL_CLIENT_ID", "")
+        client_secret = os.environ.get("GMAIL_CLIENT_SECRET") or getattr(self.settings, "GMAIL_CLIENT_SECRET", "")
+        refresh_token = os.environ.get("GMAIL_REFRESH_TOKEN") or getattr(self.settings, "GMAIL_REFRESH_TOKEN", "")
 
         if not client_id or not client_secret or not refresh_token:
             logger.error("Missing Google OAuth credentials.")

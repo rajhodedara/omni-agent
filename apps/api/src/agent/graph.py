@@ -12,6 +12,7 @@ Graph Topology:
 
 from __future__ import annotations
 
+from datetime import datetime
 import json
 import logging
 from typing import Any
@@ -153,7 +154,6 @@ async def plan_task(state: AgentState) -> dict[str, Any]:
         ]
         context_parts.append(f"Previously completed steps:\n" + "\n".join(completed))
 
-    from datetime import datetime
     current_date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     system_prompt_with_date = f"{PLANNER_SYSTEM_PROMPT}\n\n**CRITICAL CONTEXT**: The current real-world date and time is {current_date_str}. Use this for any relative time calculations (e.g., 'tomorrow')."
 

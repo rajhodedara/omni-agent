@@ -17,11 +17,13 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str = ""
     SUPABASE_JWT_SECRET: str = "your-super-secret-jwt-token-with-at-least-32-characters-long"
     
-    # Google OAuth
-    GOOGLE_CLIENT_ID: str = ""
-    GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/oauth2callback"
-    GOOGLE_REFRESH_TOKEN: str = ""
+    # Google OAuth (Gmail & Calendar)
+    GMAIL_CLIENT_ID: str = ""
+    GMAIL_CLIENT_SECRET: str = ""
+    GMAIL_REDIRECT_URI: str = "http://localhost:8000/oauth2callback"
+    GMAIL_REFRESH_TOKEN: str = ""
+    CALENDAR_CLIENT_ID: str = ""
+    CALENDAR_CLIENT_SECRET: str = ""
     
     # LLMs
     CEREBRAS_API_KEY: str = ""
