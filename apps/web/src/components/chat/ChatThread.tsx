@@ -34,7 +34,7 @@ export default function ChatThread({ messages, quickActions = [], onSelectAction
           <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 animate-pulse" />
           <span className="material-symbols-outlined text-indigo-400 text-3xl z-10">psychology</span>
         </motion.div>
-        <h3 className="text-2xl text-white mb-2 font-bold tracking-tight">PersonalAI Initialized</h3>
+        <h3 className="text-2xl text-white mb-2 font-bold tracking-tight">Omni Agent Initialized</h3>
         <p className="text-sm max-w-[280px] text-gray-400 leading-relaxed mb-8">
           Autonomous engine core active. Try starting with one of these workflows:
         </p>

@@ -21,7 +21,7 @@ export default function Header() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <div style={{ fontSize: '1.5rem' }}>✨</div>
-          <span className="text-gradient" style={{ fontSize: '1.25rem', fontWeight: 700 }}>PersonalAI</span>
+          <span className="text-gradient" style={{ fontSize: '1.25rem', fontWeight: 700 }}>Omni Agent</span>
         </Link>
       </div>
 

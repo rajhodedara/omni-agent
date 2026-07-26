@@ -282,7 +282,7 @@ export default function DashboardPage() {
       <header className="flex justify-between items-center px-6 h-16 w-full sticky top-0 z-50 bg-surface/30 backdrop-blur-md border-b border-white/10 shadow-[0_0_20px_rgba(208,188,255,0.1)]">
         <div className="flex items-center gap-4">
           <Link href="/" className="font-display-lg text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-tertiary">
-            PersonalAI
+            Omni Agent
           </Link>
         </div>
         <div className="flex items-center gap-4">
@@ -310,7 +310,7 @@ export default function DashboardPage() {
               <span className="material-symbols-outlined text-primary">person</span>
             </div>
             <div>
-              <h2 className="font-display-lg text-lg font-semibold text-on-surface">PersonalAI</h2>
+              <h2 className="font-display-lg text-lg font-semibold text-on-surface">Omni Agent</h2>
               <p className="text-xs text-on-surface-variant">Autonomous Mode</p>
             </div>
           </div>

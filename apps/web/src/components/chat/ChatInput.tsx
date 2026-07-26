@@ -121,7 +121,7 @@ export default function ChatInput({ onSend, disabled, isWaitingInput }: ChatInpu
     ? 'Type your response...'
     : isRecording 
       ? 'Listening...' 
-      : 'Command PersonalAI...';
+      : 'Command Omni Agent...';
 
   return (
     <div className="flex flex-col gap-2 w-full">

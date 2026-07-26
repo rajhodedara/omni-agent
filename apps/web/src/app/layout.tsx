@@ -11,10 +11,10 @@ const jetbrainsMono = JetBrains_Mono({
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
-  title: "PersonalAI — Autonomous AI Assistant",
+  title: "Omni Agent — Autonomous AI Assistant",
   description:
     "An autonomous AI agent that plans, executes, and manages complex multi-step workflows with real-time visibility and smart memory.",
-  keywords: ["AI", "agent", "autonomous", "assistant", "personal"],
+  keywords: ["AI", "agent", "autonomous", "assistant", "omni"],
 };
 
 export default function RootLayout({

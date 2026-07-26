@@ -11,7 +11,7 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>({
     id: 'user-1',
     name: 'Demo User',
-    email: 'demo@personalai.app',
+    email: 'demo@omniagent.app',
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -22,7 +22,7 @@ export function useAuth() {
       setUser({
         id: 'user-1',
         name: 'Demo User',
-        email: 'demo@personalai.app',
+        email: 'demo@omniagent.app',
       });
       setIsLoading(false);
     }, 1000);
