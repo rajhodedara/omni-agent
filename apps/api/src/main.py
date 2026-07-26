@@ -32,10 +32,13 @@ app = FastAPI(
 app.add_middleware(SupabaseAuthMiddleware)
 app.add_middleware(RateLimitingMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
+class CustomCORSMiddleware(CORSMiddleware):
+    def is_allowed_origin(self, origin: str) -> bool:
+        return True
+
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001", settings.FRONTEND_URL],
-    allow_origin_regex=r"https://.*|http://localhost:.*|http://127\.0\.0\.1:.*",
+    CustomCORSMiddleware,
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
